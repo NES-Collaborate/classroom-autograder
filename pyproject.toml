@@ -4,4 +4,8 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "google-api-python-client>=2.166.0",
+    "google-auth-oauthlib>=1.2.1",
+    "magentic>=0.39.2",
+]
