@@ -1,30 +1,16 @@
 """Module for grading submissions."""
 
-import io
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn
 
+from classroom.drive import download_file
+
 from .notebook import process_notebook
 
 console = Console()
-
-
-def download_file(drive_service: Any, file_id: str) -> Optional[str]:
-    """Download arquivo do Google Drive."""
-    try:
-        request = drive_service.files().get_media(fileId=file_id)
-        file = io.BytesIO()
-        downloader = drive_service.http.MediaIoBaseDownload(file, request)
-        done = False
-        while not done:
-            _, done = downloader.next_chunk()
-        return file.getvalue().decode("utf-8")
-    except Exception as e:
-        console.print(f"[red]Erro ao baixar arquivo {file_id}: {str(e)}[/red]")
-        return None
 
 
 def get_submissions(
@@ -98,7 +84,7 @@ def process_submission(
         return
 
     # Download e processamento do notebook
-    content = download_file(drive_service, file_id)
+    content = download_file(drive_service, file_id, silent=True)
     if not content:
         log_error(
             output_dir,
@@ -109,7 +95,7 @@ def process_submission(
 
     # Salva notebook temporariamente
     temp_file = output_dir / f"{student_id}_temp.ipynb"
-    temp_file.write_text(content, encoding="utf-8")
+    temp_file.write_bytes(content)
 
     # Processa células
     cells = process_notebook(temp_file)
