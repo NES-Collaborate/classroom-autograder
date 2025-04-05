@@ -1,14 +1,14 @@
 """Module for grading submissions."""
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn
 
 from classroom.drive import download_file
 from classroom.users import get_user_profile
-from models.classroom import Submission
+from models.classroom import Attachment, Submission
 
 from .notebook import process_notebook
 
@@ -17,7 +17,7 @@ console = Console()
 
 def get_submissions(
     classroom_service: Any, course_id: str, assignment_id: str
-) -> List[Submission]:
+) -> list[Submission]:
     """Busca submissões de uma atividade."""
     try:
         results = (
@@ -69,7 +69,7 @@ def process_submission(
     drive_service: Any,
     output_dir: Path,
     student_id: str,
-    attachments: List[Dict[str, Any]],
+    attachments: list[Attachment],
 ) -> None:
     """Processa uma submissão individual."""
     # Obtém perfil do usuário
@@ -84,17 +84,20 @@ def process_submission(
         )
         return
 
+    # TODO: processar todas as submissões de todos os tipos (drivefile, form, link, youtubevideo)
     # Processa primeiro anexo (assume um único notebook)
-    drive_file = attachments[0].get("driveFile", {})
-    file_id = drive_file.get("id")
-    if not file_id:
+    drive_file = attachments[0].driveFile
+    if drive_file is None:
         log_error(
             output_dir,
             student_name,
-            "### Erro: Anexo inválido\n- ID do arquivo não encontrado",
+            "### Erro: Anexo inválido\n- Arquivo não encontrado",
         )
         return
 
+    file_id = drive_file.id
+
+    # TODO: tornar esta função mais geral, não necessáriamente teremos somente um jupyternotebook.
     # Download e processamento do notebook
     content = download_file(drive_service, file_id, silent=True)
     if not content:
@@ -125,6 +128,7 @@ def process_submission(
     from .llm import create_feedback
 
     # TODO: Implementar leitura do arquivo de critérios
+    # TODO: reescrever esse "create_feedback" para receber como arugmento um "contexto" geral, de todas as subumissões, não só "cells".
     criteria_file = None
     feedback = create_feedback(student_id, cells, criteria_file)
 
@@ -142,22 +146,36 @@ def process_submissions_batch(
     classroom_service: Any,
     drive_service: Any,
     output_dir: Path,
-    submissions: List[Dict[str, Any]],
+    submissions: list[Submission],
     progress: Progress,
 ) -> None:
     """Processa um lote de submissões com barra de progresso."""
     task = progress.add_task("Processando submissões...", total=len(submissions))
 
     for submission in submissions:
-        student_id = submission.get("userId")
+        student_id = submission.userId
         if not student_id:
             progress.advance(task)
             continue
 
         try:
-            attachments = submission.get("assignmentSubmission", {}).get(
-                "attachments", []
-            )
+            if submission.assignmentSubmission is None:
+                log_error(
+                    output_dir,
+                    student_id,
+                    "### Erro: Submissão inválida\n- Nenhum arquivo encontrado",
+                )
+                continue
+
+            attachments = submission.assignmentSubmission.attachments
+            if attachments is None:
+                log_error(
+                    output_dir,
+                    student_id,
+                    "### Erro: Submissão inválida\n- Nenhum arquivo encontrado",
+                )
+                continue
+
             process_submission(
                 classroom_service, drive_service, output_dir, student_id, attachments
             )
@@ -198,12 +216,11 @@ def grade_submissions(
             *Progress.get_default_columns(),
             console=console,
         ) as progress:
-            # TODO: mudar o type do process_submissions_batch, a fim de não rpecisar desempacotar tudo.
             process_submissions_batch(
                 classroom_service,
                 drive_service,
                 output_dir,
-                [sub.model_dump() for sub in submissions],
+                submissions,
                 progress,
             )
 
