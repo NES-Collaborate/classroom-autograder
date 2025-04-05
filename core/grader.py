@@ -133,10 +133,11 @@ def process_submission(
     save_feedback(output_dir, student_id, student_name, feedback)
 
 
-def prepare_output_dir() -> Path:
+def prepare_output_dir(course_id: str, assignment_id: str) -> Path:
     """Prepara diretório de saída."""
-    output_dir = Path("output")
-    output_dir.mkdir(exist_ok=True)
+    output_dir = Path("output") / course_id / assignment_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+    console.print(f"[green]Feedbacks serão salvos em: {output_dir}[/green]")
     return output_dir
 
 
@@ -201,7 +202,7 @@ def grade_submissions(
     """Processa e avalia as submissões de uma atividade."""
     try:
         # 1. Preparar ambiente
-        output_dir = prepare_output_dir()
+        output_dir = prepare_output_dir(course_id, assignment_id)
 
         # 2. Buscar submissões
         submissions = get_submissions(classroom_service, course_id, assignment_id)
