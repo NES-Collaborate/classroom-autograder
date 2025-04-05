@@ -12,6 +12,7 @@ from .questions import (
     get_course_id,
     select_assignment,
     select_course,
+    select_criteria_file,
 )
 
 console = Console()
@@ -63,7 +64,15 @@ def main():
         classroom_service = get_service("classroom", "v1")
         drive_service = get_service("drive", "v3")
 
-        grade_submissions(classroom_service, drive_service, course_id, assignment_id)
+        # TODO: perguntar se gerar critério de avalização automáticamente.
+        # TODO: fazer load do critério de avalização já aqui.
+        criteria_path = select_criteria_file()
+        if not criteria_path:
+            return
+
+        grade_submissions(
+            classroom_service, drive_service, course_id, assignment_id, criteria_path
+        )
 
         console.print("\n[green]✨ Processo concluído![/green]")
 

@@ -69,6 +69,7 @@ def process_submission(
     output_dir: Path,
     student_id: str,
     attachments: list[Attachment],
+    criteria_path: Path,
 ) -> None:
     """Processa uma submissão individual."""
     # Obtém perfil do usuário
@@ -126,10 +127,8 @@ def process_submission(
     # Avalia com LLM
     from .llm import create_feedback
 
-    # TODO: Implementar leitura do arquivo de critérios
     # TODO: reescrever esse "create_feedback" para receber como arugmento um "contexto" geral, de todas as subumissões, não só "cells".
-    criteria_file = None
-    feedback = create_feedback(student_id, cells, criteria_file)
+    feedback = create_feedback(student_id, cells, criteria_path)
 
     save_feedback(output_dir, student_id, student_name, feedback)
 
@@ -146,6 +145,7 @@ def process_submissions_batch(
     drive_service: Any,
     output_dir: Path,
     submissions: list[Submission],
+    criteria_path: Path,
 ) -> None:
     """Processa um lote de submissões com barra de progresso."""
     for submission in submissions:
@@ -172,7 +172,12 @@ def process_submissions_batch(
                 continue
 
             process_submission(
-                classroom_service, drive_service, output_dir, student_id, attachments
+                classroom_service,
+                drive_service,
+                output_dir,
+                student_id,
+                attachments,
+                criteria_path,
             )
 
         except Exception as e:
@@ -191,6 +196,7 @@ def grade_submissions(
     drive_service: Any,
     course_id: str,
     assignment_id: str,
+    criteria_path: Path,
 ) -> None:
     """Processa e avalia as submissões de uma atividade."""
     try:
@@ -209,6 +215,7 @@ def grade_submissions(
             drive_service,
             output_dir,
             submissions,
+            criteria_path,
         )
 
         console.print("[green]✨ Processamento concluído![/green]")

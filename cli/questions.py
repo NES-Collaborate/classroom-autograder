@@ -1,9 +1,22 @@
+from pathlib import Path
 from typing import Any, Dict, List
 
 import questionary
 from rich.console import Console
 
 console = Console()
+
+
+def select_criteria_file() -> Path:
+    """Solicita ao usuário que informe o caminho do arquivo de critérios."""
+    return Path(
+        questionary.path(
+            "Informe o caminho do arquivo de critérios:",
+            default="criteria.md",
+            only_directories=False,
+            file_filter=lambda path: path.endswith(".md"),
+        ).ask()
+    ).resolve()
 
 
 def create_course_choices(courses: List[Dict[str, Any]]) -> List[str]:
