@@ -8,6 +8,7 @@ from rich.progress import Progress, SpinnerColumn
 
 from classroom.drive import download_file
 from classroom.users import get_user_profile
+from models.classroom import Submission
 
 from .notebook import process_notebook
 
@@ -16,7 +17,7 @@ console = Console()
 
 def get_submissions(
     classroom_service: Any, course_id: str, assignment_id: str
-) -> List[Dict[str, Any]]:
+) -> List[Submission]:
     """Busca submissões de uma atividade."""
     try:
         results = (
@@ -26,7 +27,10 @@ def get_submissions(
             .list(courseId=course_id, courseWorkId=assignment_id)
             .execute()
         )
-        return results.get("studentSubmissions", [])
+        return [
+            Submission.model_validate(submission)
+            for submission in results.get("studentSubmissions", [])
+        ]
     except Exception as e:
         console.print(f"[red]Erro ao buscar submissões: {str(e)}[/red]")
         return []
@@ -194,8 +198,13 @@ def grade_submissions(
             *Progress.get_default_columns(),
             console=console,
         ) as progress:
+            # TODO: mudar o type do process_submissions_batch, a fim de não rpecisar desempacotar tudo.
             process_submissions_batch(
-                classroom_service, drive_service, output_dir, submissions, progress
+                classroom_service,
+                drive_service,
+                output_dir,
+                [sub.model_dump() for sub in submissions],
+                progress,
             )
 
         console.print("[green]✨ Processamento concluído![/green]")
