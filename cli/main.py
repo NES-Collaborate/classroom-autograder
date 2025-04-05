@@ -77,15 +77,7 @@ def main():
         classroom_service = get_service("classroom", "v1")
         drive_service = get_service("drive", "v3")
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            progress.add_task(description="Corrigindo submissões...", total=None)
-            grade_submissions(
-                classroom_service, drive_service, course_id, assignment_id
-            )
+        grade_submissions(classroom_service, drive_service, course_id, assignment_id)
 
         console.print("\n[green]✨ Processo concluído![/green]")
 
