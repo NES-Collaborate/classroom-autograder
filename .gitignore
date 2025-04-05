@@ -1,3 +1,4 @@
 credentials.json
 tokens/
 __pycache__/
+output/
