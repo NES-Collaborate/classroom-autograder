@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.status import Status
 
 from auth.google import get_service
 from classroom import get_assignments, get_courses
@@ -21,40 +21,26 @@ def get_selection() -> Tuple[str | None, str | None]:
     """Obtém as seleções do usuário."""
     classroom_service = get_service("classroom", "v1")
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        # Carrega cursos
-        progress.add_task(description="Carregando cursos...", total=None)
+    with Status("Carregando cursos...", spinner="dots"):
         courses = get_courses(classroom_service)
 
-        if not courses:
-            console.print("[red]Nenhum curso encontrado.[/red]")
-            return None, None
+    if not courses:
+        console.print("[red]Nenhum curso encontrado.[/red]")
+        return None, None
 
-    # Seleciona curso
     selected_course = select_course(courses)
     if not selected_course:
         return None, None
 
     course_id = get_course_id(selected_course)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        # Carrega atividades do curso selecionado
-        progress.add_task(description="Carregando atividades...", total=None)
+    with Status("Carregando atividades...", spinner="dots"):
         assignments = get_assignments(classroom_service, course_id)
 
-        if not assignments:
-            console.print("[red]Nenhuma atividade encontrada.[/red]")
-            return None, None
+    if not assignments:
+        console.print("[red]Nenhuma atividade encontrada.[/red]")
+        return None, None
 
-    # Seleciona atividade
     selected_assignment = select_assignment(assignments)
     if not selected_assignment:
         return None, None
