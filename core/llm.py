@@ -9,7 +9,8 @@ from rich.console import Console
 console = Console()
 
 
-@magentic.prompt("""
+@magentic.prompt(
+    """
 Você está avaliando uma submissão de um notebook Jupyter. Analise cada célula e forneça feedback específico.
 
 Para cada célula, considere:
@@ -31,7 +32,15 @@ Template do feedback:
 
 ## Comentários Gerais
 [comentários gerais]
-""")
+
+Células:
+{cells}
+
+Critérios de Avaliação:
+{criteria}
+""",
+    model=magentic.OpenaiChatModel("gpt-4o-mini"),
+)
 def evaluate_notebook(
     cells: List[Dict[str, Any]], criteria: Optional[str] = None
 ) -> str:
