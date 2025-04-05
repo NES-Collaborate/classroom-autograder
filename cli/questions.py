@@ -26,15 +26,15 @@ def get_assignment_id(selected_assignment: str) -> str:
     return selected_assignment.split("(")[-1].strip(")")
 
 
-def create_selection_form(
-    courses: List[Dict[str, Any]], assignments: List[Dict[str, Any]]
-):
-    """Cria o formulário de seleção."""
-    return questionary.form(
-        course=questionary.select(
-            "Selecione o curso:", choices=create_course_choices(courses)
-        ),
-        assignment=questionary.select(
-            "Selecione a atividade:", choices=create_assignment_choices(assignments)
-        ),
-    )
+def select_course(courses: List[Dict[str, Any]]) -> str:
+    """Solicita ao usuário que selecione um curso."""
+    return questionary.select(
+        "Selecione o curso:", choices=create_course_choices(courses)
+    ).ask()
+
+
+def select_assignment(assignments: List[Dict[str, Any]]) -> str:
+    """Solicita ao usuário que selecione uma atividade."""
+    return questionary.select(
+        "Selecione a atividade:", choices=create_assignment_choices(assignments)
+    ).ask()

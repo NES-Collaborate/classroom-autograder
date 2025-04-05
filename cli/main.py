@@ -7,14 +7,18 @@ from auth.google import get_service
 from classroom import get_assignments, get_courses
 from core.grader import grade_submissions
 
-from .questions import create_selection_form, get_assignment_id, get_course_id
+from .questions import (
+    get_assignment_id,
+    get_course_id,
+    select_assignment,
+    select_course,
+)
 
 console = Console()
 
 
 def get_selection() -> Tuple[str | None, str | None]:
     """Obtém as seleções do usuário."""
-
     classroom_service = get_service("classroom", "v1")
 
     with Progress(
@@ -30,24 +34,32 @@ def get_selection() -> Tuple[str | None, str | None]:
             console.print("[red]Nenhum curso encontrado.[/red]")
             return None, None
 
-        # Carrega atividades do primeiro curso (será atualizado após seleção)
-        # TODO: somente carregar atividades após seleção do curso.
+    # Seleciona curso
+    selected_course = select_course(courses)
+    if not selected_course:
+        return None, None
+
+    course_id = get_course_id(selected_course)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        # Carrega atividades do curso selecionado
         progress.add_task(description="Carregando atividades...", total=None)
-        first_course_id = courses[0]["id"]
-        assignments = get_assignments(classroom_service, first_course_id)
+        assignments = get_assignments(classroom_service, course_id)
 
         if not assignments:
             console.print("[red]Nenhuma atividade encontrada.[/red]")
             return None, None
 
-    # Apresenta formulário de seleção
-    answers = create_selection_form(courses, assignments).ask()
-
-    if not answers:
+    # Seleciona atividade
+    selected_assignment = select_assignment(assignments)
+    if not selected_assignment:
         return None, None
 
-    course_id = get_course_id(answers["course"])
-    assignment_id = get_assignment_id(answers["assignment"])
+    assignment_id = get_assignment_id(selected_assignment)
 
     return course_id, assignment_id
 
