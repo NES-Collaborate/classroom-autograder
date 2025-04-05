@@ -66,15 +66,14 @@ def log_error(output_dir: Path, student_name: str, error: str) -> None:
 def process_submission(
     classroom_service: Any,
     drive_service: Any,
-    output_dir: Path,
-    student_id: str,
+    student: dict,
     attachments: list[Attachment],
     criteria_path: Path,
+    output_dir: Path,
 ) -> None:
     """Processa uma submissão individual."""
-    # Obtém perfil do usuário
-    profile = get_user_profile(classroom_service, student_id)
-    student_name = profile["full_name"] if profile else student_id
+    student_id = student["userId"]
+    student_name = student["full_name"]
 
     if not attachments:
         log_error(
@@ -144,14 +143,22 @@ def prepare_output_dir(course_id: str, assignment_id: str) -> Path:
 def process_submissions_batch(
     classroom_service: Any,
     drive_service: Any,
-    output_dir: Path,
-    submissions: list[Submission],
     criteria_path: Path,
+    submissions: list[Submission],
+    output_dir: Path,
 ) -> None:
     """Processa um lote de submissões com barra de progresso."""
+    # TODO: ThreadPoolExecutor para processar submissões em paralelo.
     for submission in submissions:
         student_id = submission.userId
-        if not student_id:
+        student = get_user_profile(classroom_service, student_id)
+        if student is None:
+            # TODO: mudar isso de erro pra warning e prosseguir com a execução utilizando student placeholder.
+            log_error(
+                output_dir,
+                student_id,
+                "### Erro: Usuário inválido\n- Não foi possível encontrar o usuário",
+            )
             continue
 
         try:
@@ -175,16 +182,14 @@ def process_submissions_batch(
             process_submission(
                 classroom_service,
                 drive_service,
-                output_dir,
-                student_id,
+                student,
                 attachments,
                 criteria_path,
+                output_dir,
             )
 
         except Exception as e:
-            # Obtém nome do aluno para o erro
-            profile = get_user_profile(classroom_service, student_id)
-            student_name = profile["full_name"] if profile else student_id
+            student_name = student["full_name"] if student else student_id
             log_error(
                 output_dir,
                 student_name,
@@ -214,9 +219,9 @@ def grade_submissions(
         process_submissions_batch(
             classroom_service,
             drive_service,
-            output_dir,
-            submissions,
             criteria_path,
+            submissions,
+            output_dir,
         )
 
         console.print("[green]✨ Processamento concluído![/green]")
