@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn
 
 from classroom.drive import download_file
+from classroom.users import get_user_profile
 
 from .notebook import process_notebook
 
@@ -31,20 +32,22 @@ def get_submissions(
         return []
 
 
-def save_feedback(output_dir: Path, student_id: str, feedback: str) -> None:
+def save_feedback(
+    output_dir: Path, student_id: str, student_name: str, feedback: str
+) -> None:
     """Salva feedback em arquivo markdown."""
     try:
-        student_file = output_dir / f"{student_id}_feedback.md"
+        student_file = output_dir / f"{student_id}_{student_name}_feedback.md"
         student_file.write_text(feedback, encoding="utf-8")
     except Exception as e:
         console.print(f"[red]Erro ao salvar feedback: {str(e)}[/red]")
 
 
-def log_error(output_dir: Path, student_id: str, error: str) -> None:
+def log_error(output_dir: Path, student_name: str, error: str) -> None:
     """Registra erro no arquivo de erros."""
     try:
         error_file = output_dir / "errors.md"
-        error_content = f"\n## Aluno: {student_id}\n{error}\n"
+        error_content = f"\n## Aluno: {student_name}\n{error}\n"
 
         if error_file.exists():
             current_content = error_file.read_text(encoding="utf-8")
@@ -58,16 +61,21 @@ def log_error(output_dir: Path, student_id: str, error: str) -> None:
 
 
 def process_submission(
+    classroom_service: Any,
     drive_service: Any,
     output_dir: Path,
     student_id: str,
     attachments: List[Dict[str, Any]],
 ) -> None:
     """Processa uma submissão individual."""
+    # Obtém perfil do usuário
+    profile = get_user_profile(classroom_service, student_id)
+    student_name = profile["full_name"] if profile else student_id
+
     if not attachments:
         log_error(
             output_dir,
-            student_id,
+            student_name,
             "### Erro: Submissão sem anexos\n- Nenhum arquivo encontrado",
         )
         return
@@ -78,7 +86,7 @@ def process_submission(
     if not file_id:
         log_error(
             output_dir,
-            student_id,
+            student_name,
             "### Erro: Anexo inválido\n- ID do arquivo não encontrado",
         )
         return
@@ -88,13 +96,13 @@ def process_submission(
     if not content:
         log_error(
             output_dir,
-            student_id,
+            student_name,
             "### Erro: Download falhou\n- Não foi possível baixar o arquivo",
         )
         return
 
     # Salva notebook temporariamente
-    temp_file = output_dir / f"{student_id}_temp.ipynb"
+    temp_file = output_dir / f"{student_id}_{student_name}_temp.ipynb"
     temp_file.write_bytes(content)
 
     # Processa células
@@ -104,7 +112,7 @@ def process_submission(
     if not cells:
         log_error(
             output_dir,
-            student_id,
+            student_name,
             "### Erro: Notebook inválido\n- Não foi possível processar o notebook",
         )
         return
@@ -116,7 +124,7 @@ def process_submission(
     criteria_file = None
     feedback = create_feedback(student_id, cells, criteria_file)
 
-    save_feedback(output_dir, student_id, feedback)
+    save_feedback(output_dir, student_id, student_name, feedback)
 
 
 def prepare_output_dir() -> Path:
@@ -127,6 +135,7 @@ def prepare_output_dir() -> Path:
 
 
 def process_submissions_batch(
+    classroom_service: Any,
     drive_service: Any,
     output_dir: Path,
     submissions: List[Dict[str, Any]],
@@ -145,12 +154,17 @@ def process_submissions_batch(
             attachments = submission.get("assignmentSubmission", {}).get(
                 "attachments", []
             )
-            process_submission(drive_service, output_dir, student_id, attachments)
+            process_submission(
+                classroom_service, drive_service, output_dir, student_id, attachments
+            )
 
         except Exception as e:
+            # Obtém nome do aluno para o erro
+            profile = get_user_profile(classroom_service, student_id)
+            student_name = profile["full_name"] if profile else student_id
             log_error(
                 output_dir,
-                student_id,
+                student_name,
                 f"### Erro: Exceção não tratada\n- {str(e)}",
             )
 
@@ -180,7 +194,9 @@ def grade_submissions(
             *Progress.get_default_columns(),
             console=console,
         ) as progress:
-            process_submissions_batch(drive_service, output_dir, submissions, progress)
+            process_submissions_batch(
+                classroom_service, drive_service, output_dir, submissions, progress
+            )
 
         console.print("[green]✨ Processamento concluído![/green]")
 
