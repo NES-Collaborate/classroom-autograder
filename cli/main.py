@@ -12,7 +12,7 @@ from .questions import (
     get_course_id,
     select_assignment,
     select_course,
-    select_criteria_file,
+    select_or_generate_criteria,
 )
 
 console = Console()
@@ -64,9 +64,7 @@ def main():
         classroom_service = get_service("classroom", "v1")
         drive_service = get_service("drive", "v3")
 
-        # TODO: perguntar se gerar critério de avalização automáticamente.
-        # TODO: fazer load do critério de avalização já aqui.
-        criteria_path = select_criteria_file()
+        criteria_path = select_or_generate_criteria()
         if not criteria_path:
             return
 

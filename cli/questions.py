@@ -7,6 +7,29 @@ from rich.console import Console
 console = Console()
 
 
+def select_criteria_mode() -> str:
+    """Solicita ao usuário que escolha entre usar um critério existente ou gerar um novo."""
+    return questionary.select(
+        "Como você quer definir os critérios de avaliação?",
+        choices=[
+            "Usar um arquivo existente",
+            "Gerar um novo baseado no enunciado (não implementado ainda)",
+        ],
+    ).ask()
+
+
+def select_or_generate_criteria() -> Path:
+    """Gerencia a seleção ou geração de critérios de avaliação."""
+    mode = select_criteria_mode()
+
+    if mode == "Gerar um novo baseado no enunciado (não implementado ainda)":
+        console.print(
+            "[yellow]Funcionalidade não implementada ainda. Por favor, selecione um arquivo existente.[/yellow]"
+        )
+
+    return select_criteria_file()
+
+
 def select_criteria_file() -> Path:
     """Solicita ao usuário que informe o caminho do arquivo de critérios."""
     return Path(
