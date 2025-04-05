@@ -105,3 +105,9 @@ class Submission(BaseModel):
     multipleChoiceSubmission: MultipleChoiceSubmission | None = (
         None  # Submission content for MULTIPLE_CHOICE_QUESTION type
     )
+
+
+class UserProfile(BaseModel):
+    id: str
+    full_name: str
+    email: str
