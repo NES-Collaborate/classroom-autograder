@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn
 
 from classroom.drive import download_file
 from classroom.users import get_user_profile
@@ -147,15 +146,11 @@ def process_submissions_batch(
     drive_service: Any,
     output_dir: Path,
     submissions: list[Submission],
-    progress: Progress,
 ) -> None:
     """Processa um lote de submissões com barra de progresso."""
-    task = progress.add_task("Processando submissões...", total=len(submissions))
-
     for submission in submissions:
         student_id = submission.userId
         if not student_id:
-            progress.advance(task)
             continue
 
         try:
@@ -190,8 +185,6 @@ def process_submissions_batch(
                 f"### Erro: Exceção não tratada\n- {str(e)}",
             )
 
-        progress.advance(task)
-
 
 def grade_submissions(
     classroom_service: Any,
@@ -211,18 +204,12 @@ def grade_submissions(
             return
 
         # 3. Processar submissões
-        with Progress(
-            SpinnerColumn(),
-            *Progress.get_default_columns(),
-            console=console,
-        ) as progress:
-            process_submissions_batch(
-                classroom_service,
-                drive_service,
-                output_dir,
-                submissions,
-                progress,
-            )
+        process_submissions_batch(
+            classroom_service,
+            drive_service,
+            output_dir,
+            submissions,
+        )
 
         console.print("[green]✨ Processamento concluído![/green]")
 
