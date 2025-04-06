@@ -5,6 +5,7 @@ from typing import Any, List
 
 from rich.console import Console
 
+from core.email import EmailSender
 from core.stringfy import AttachmentParser
 from core.users import get_user_profile
 from models import Attachment, Submission, UserProfile
@@ -25,6 +26,7 @@ class SubmissionsGrader:
         assignment_id: str,
         criteria_path: Path,
         output_dir: Path,
+        send_email: bool = False,
     ):
         """Inicializa o avaliador de submissões."""
         self.classroom_service = classroom_service
@@ -33,6 +35,7 @@ class SubmissionsGrader:
         self.assignment_id = assignment_id
         self.criteria_path = criteria_path
         self.output_dir = output_dir
+        self.send_email = send_email
 
     def _get_submissions(self) -> List[Submission]:
         """Busca submissões de uma atividade."""
@@ -108,6 +111,10 @@ class SubmissionsGrader:
         )
         self._save_feedback(student, feedback)
 
+        if self.send_email:
+            email_sender = EmailSender.get_instance()
+            email_sender.send_email(student.email, "Feedback da Atividade", feedback)
+
     def _process_submissions_batch(self, submissions: List[Submission]) -> None:
         """Processa um lote de submissões."""
         # TODO: ThreadPoolExecutor para processar submissões em paralelo.
@@ -179,6 +186,7 @@ def grade_submissions(
     assignment_id: str,
     criteria_path: Path,
     output_dir: Path,
+    send_email: bool = False,
 ) -> None:
     """Função de conveniência para processar e avaliar submissões."""
     grader = SubmissionsGrader(
@@ -188,5 +196,6 @@ def grade_submissions(
         assignment_id,
         criteria_path,
         output_dir,
+        send_email,
     )
     grader.grade()

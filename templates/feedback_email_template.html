@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+        color: #2c3e50;
+      }
+      .header {
+        text-align: center;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+      }
+      .logo {
+        max-width: 100px;
+        height: auto;
+        margin-bottom: 15px;
+        object-fit: contain;
+        border-radius: 5px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .content {
+        background: #f9f9f9;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      }
+      .footer {
+        margin-top: 35px;
+        padding-top: 20px;
+        border-top: 1px solid #bdc3c7;
+        color: #7f8c8d;
+        text-align: center;
+      }
+      .contact-link {
+        color: #27ae60;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        font-weight: bold;
+      }
+      .contact-link:hover {
+        text-decoration: underline;
+      }
+      .whatsapp-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <img src="https://i.postimg.cc/Qdk8WCHP/NES-C-rculo.png" alt="Novo Ensino Suplementar" class="logo" />
+      <h2>Feedback da Atividade</h2>
+    </div>
+
+    <div class="content">{{ feedback_content }}</div>
+
+    <div class="footer">
+      <p>
+        Em caso de dúvidas sobre o feedback, você pode entrar em contato
+        diretamente pelo WhatsApp:
+      </p>
+      <p>
+        <a href="{{ whatsapp_link }}" class="contact-link">
+          <img src="https://cdn-icons-png.freepik.com/256/15707/15707917.png" alt="WhatsApp" class="whatsapp-icon" />
+          Enviar mensagem para {{ teacher_name }}
+        </a>
+      </p>
+    </div>
+  </body>
+</html>

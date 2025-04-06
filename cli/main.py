@@ -14,6 +14,7 @@ from .questions import (
     select_assignment,
     select_course,
     select_or_generate_criteria,
+    should_send_email,
 )
 
 console = Console()
@@ -74,6 +75,8 @@ def main():
             course_id, assignment_id, classroom_service, drive_service, output_dir
         )
 
+        send_email = should_send_email()
+
         grade_submissions(
             classroom_service,
             drive_service,
@@ -81,6 +84,7 @@ def main():
             assignment_id,
             criteria_path,
             output_dir,
+            send_email=send_email,
         )
 
         console.print("\n[green]✨ Processo concluído![/green]")

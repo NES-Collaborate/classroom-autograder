@@ -1,6 +1,7 @@
 from enum import Enum
+from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class SubmissionState(Enum):
@@ -132,6 +133,36 @@ class CourseWorkState(Enum):
     PUBLISHED = "PUBLISHED"  # Status for work that has been published. This is the default state.
     DRAFT = "DRAFT"  # Status for work that is not yet published. Work in this state is visible only to course teachers and domain administrators.
     DELETED = "DELETED"  # Status for work that was published but is now deleted. Work in this state is visible only to course teachers and domain administrators. Work in this state is deleted after some time.
+
+
+class TeacherProfile(BaseModel):
+    """Perfil do professor com informações para comunicação."""
+
+    name: str
+    whatsapp: str  # Formato: 5511999999999
+    email: EmailStr
+    smtp_server: str
+    smtp_port: int = 465
+    smtp_password: str
+
+    @property
+    def whatsapp_link(self) -> str:
+        """Retorna o link para mensagem direta no WhatsApp."""
+        return f"https://wa.me/{self.whatsapp}"
+
+    def save(self, config_dir: Path) -> None:
+        """Salva o perfil em arquivo."""
+        config_dir.mkdir(parents=True, exist_ok=True)
+        config_file = config_dir / "teacher_profile.json"
+        config_file.write_text(self.model_dump_json(), encoding="utf-8")
+
+    @classmethod
+    def load(cls, config_dir: Path) -> "TeacherProfile | None":
+        """Carrega o perfil do arquivo se existir."""
+        config_file = config_dir / "teacher_profile.json"
+        if config_file.exists():
+            return cls.model_validate_json(config_file.read_text(encoding="utf-8"))
+        return None
 
 
 class CourseWork(BaseModel):

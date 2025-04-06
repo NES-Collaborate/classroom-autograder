@@ -5,8 +5,45 @@ import questionary
 from rich.console import Console
 
 from core.criteria_generator import CriteriaGenerator
+from models import TeacherProfile
 
 console = Console()
+
+
+def setup_teacher_profile() -> TeacherProfile:
+    """Solicita informações do perfil do professor."""
+    name = questionary.text("Nome do Professor:").ask()
+    whatsapp = questionary.text(
+        "Número do WhatsApp (formato: 5511999999999):",
+        validate=lambda text: len(text) >= 12 and text.isdigit(),
+    ).ask()
+    email = questionary.text(
+        "Email para envio dos feedbacks:",
+        validate=lambda text: "@" in text and "." in text.split("@")[1],
+    ).ask()
+    smtp_server = questionary.text("Servidor SMTP (ex: mail.example.com):").ask()
+    smtp_port = questionary.text(
+        "Porta SMTP:",
+        default="465",
+        validate=lambda text: text.isdigit() and 0 < int(text) <= 65535,
+    ).ask()
+    smtp_password = questionary.password("Senha SMTP:").ask()
+
+    return TeacherProfile(
+        name=name,
+        whatsapp=whatsapp,
+        email=email,
+        smtp_server=smtp_server,
+        smtp_port=int(smtp_port),
+        smtp_password=smtp_password,
+    )
+
+
+def should_send_email() -> bool:
+    """Solicita ao usuário se deseja enviar feedback por email."""
+    return questionary.confirm(
+        "Deseja enviar os feedbacks por email?", default=False
+    ).ask()
 
 
 def select_criteria_mode() -> str:
