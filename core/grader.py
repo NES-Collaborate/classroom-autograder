@@ -119,23 +119,28 @@ class SubmissionsGrader:
         # Salva o feedback e processa as notas
         self._save_feedback(student, result.feedback)
 
-        # Grade the submission in Classroom
-        grade_submission(
-            self.classroom_service,
-            self.course_id,
-            self.assignment_id,
-            submission.id,
-            result.grade,
-            result.grade if self.return_grades else None,
-        )
-
-        # Return the submission if requested
-        if self.return_grades:
-            return_submission(
+        if submission.associatedWithDeveloper:
+            # Grade the submission in Classroom
+            grade_submission(
                 self.classroom_service,
                 self.course_id,
                 self.assignment_id,
                 submission.id,
+                result.grade,
+                result.grade if self.return_grades else None,
+            )
+
+            # Return the submission if requested
+            if self.return_grades:
+                return_submission(
+                    self.classroom_service,
+                    self.course_id,
+                    self.assignment_id,
+                    submission.id,
+                )
+        else:
+            console.print(
+                "[yellow]Nota do aluno não definida no Google Classroom uma vez que a atividade não foi criada pela conta logada em questão.[/yellow]"
             )
 
         # Send email if requested
