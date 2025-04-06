@@ -1,13 +1,15 @@
 """Google Classroom integration module."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from rich.console import Console
+
+from models import CourseWork
 
 console = Console()
 
 
-def get_courses(service) -> List[Dict[str, Any]]:
+def get_courses(service) -> list[dict[str, Any]]:
     """Recupera lista de cursos do Google Classroom."""
     try:
         results = (
@@ -20,7 +22,7 @@ def get_courses(service) -> List[Dict[str, Any]]:
         return []
 
 
-def get_assignments(service, course_id: str) -> List[Dict[str, Any]]:
+def get_assignments(service, course_id: str) -> list[dict[str, Any]]:
     """Recupera lista de atividades de um curso."""
     try:
         results = (
@@ -34,3 +36,17 @@ def get_assignments(service, course_id: str) -> List[Dict[str, Any]]:
     except Exception as e:
         console.print(f"[red]Erro ao buscar atividades: {str(e)}[/red]")
         return []
+
+
+def get_course_work(service, course_id: str, assignment_id: str) -> CourseWork | None:
+    """Recupera o contexto de uma atividade."""
+    try:
+        return CourseWork.model_validate(
+            service.courses()
+            .courseWork()
+            .get(courseId=course_id, id=assignment_id)
+            .execute()
+        )
+    except Exception as e:
+        console.print(f"[red]Erro ao buscar contexto: {str(e)}[/red]")
+        return None

@@ -4,6 +4,8 @@ from typing import Any, Dict, List
 import questionary
 from rich.console import Console
 
+from core.criteria_generator import CriteriaGenerator
+
 console = Console()
 
 
@@ -13,19 +15,26 @@ def select_criteria_mode() -> str:
         "Como você quer definir os critérios de avaliação?",
         choices=[
             "Usar um arquivo existente",
-            "Gerar um novo baseado no enunciado (não implementado ainda)",
+            "Gerar um novo baseado no enunciado",
         ],
     ).ask()
 
 
-def select_or_generate_criteria() -> Path:
+def select_or_generate_criteria(
+    course_id: str,
+    assignment_id: str,
+    classroom_service: ...,
+    drive_service: ...,
+    output_dir: Path,
+) -> Path:
     """Gerencia a seleção ou geração de critérios de avaliação."""
     mode = select_criteria_mode()
 
-    if mode == "Gerar um novo baseado no enunciado (não implementado ainda)":
-        console.print(
-            "[yellow]Funcionalidade não implementada ainda. Por favor, selecione um arquivo existente.[/yellow]"
+    if mode == "Gerar um novo baseado no enunciado":
+        criteria_generator = CriteriaGenerator(
+            course_id, assignment_id, classroom_service, drive_service, output_dir
         )
+        return criteria_generator.generate()
 
     return select_criteria_file()
 

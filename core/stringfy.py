@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from core.drive import download_file
-from models import Attachment, DriveFile, Form, Link, YouTubeVideo
+from models import Attachment, DriveFile, Form, Link, SharedDriveFile, YouTubeVideo
 from utils import sanitize_string
 
 from .notebook import process_notebook
@@ -24,7 +24,7 @@ class AttachmentParser:
     def __download_drive_file(
         self, drive_file: DriveFile, filename: str
     ) -> Optional[bytes]:
-        file_path = self.output_dir / "downloads" / filename
+        file_path = self.output_dir / filename
         if file_path.exists():
             with file_path.open("rb") as f:
                 return f.read()
@@ -44,7 +44,9 @@ class AttachmentParser:
         except Exception as e:
             raise ValueError(f"Erro ao decodificar bytes: {str(e)}")
 
-    def __stringfy_drive_file(self, drive_file: DriveFile) -> str:
+    def __stringfy_drive_file(self, drive_file: DriveFile | SharedDriveFile) -> str:
+        if isinstance(drive_file, SharedDriveFile):
+            drive_file = drive_file.driveFile
         filename = f"{drive_file.id}_{sanitize_string(drive_file.title)}"
         file_bytes = self.__download_drive_file(drive_file, filename)
         if file_bytes is None:

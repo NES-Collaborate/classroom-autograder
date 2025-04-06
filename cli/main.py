@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Tuple
 
 from rich.console import Console
@@ -61,15 +62,25 @@ def main():
         if not course_id or not assignment_id:
             return
 
+        output_dir = Path("output") / course_id / assignment_id
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        console.print(f"[green]Feedbacks serão salvos em: {output_dir}[/green]")
+
         classroom_service = get_service("classroom", "v1")
         drive_service = get_service("drive", "v3")
 
-        criteria_path = select_or_generate_criteria()
-        if not criteria_path:
-            return
+        criteria_path = select_or_generate_criteria(
+            course_id, assignment_id, classroom_service, drive_service, output_dir
+        )
 
         grade_submissions(
-            classroom_service, drive_service, course_id, assignment_id, criteria_path
+            classroom_service,
+            drive_service,
+            course_id,
+            assignment_id,
+            criteria_path,
+            output_dir,
         )
 
         console.print("\n[green]✨ Processo concluído![/green]")

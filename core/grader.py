@@ -24,6 +24,7 @@ class SubmissionsGrader:
         course_id: str,
         assignment_id: str,
         criteria_path: Path,
+        output_dir: Path,
     ):
         """Inicializa o avaliador de submissões."""
         self.classroom_service = classroom_service
@@ -31,15 +32,7 @@ class SubmissionsGrader:
         self.course_id = course_id
         self.assignment_id = assignment_id
         self.criteria_path = criteria_path
-        self.output_dir = self._prepare_output_dir()
-
-    def _prepare_output_dir(self) -> Path:
-        """Prepara diretório de saída."""
-        # TODO: definir saída como argumento do grader.
-        output_dir = Path("output") / self.course_id / self.assignment_id
-        output_dir.mkdir(parents=True, exist_ok=True)
-        console.print(f"[green]Feedbacks serão salvos em: {output_dir}[/green]")
-        return output_dir
+        self.output_dir = output_dir
 
     def _get_submissions(self) -> List[Submission]:
         """Busca submissões de uma atividade."""
@@ -185,9 +178,15 @@ def grade_submissions(
     course_id: str,
     assignment_id: str,
     criteria_path: Path,
+    output_dir: Path,
 ) -> None:
     """Função de conveniência para processar e avaliar submissões."""
     grader = SubmissionsGrader(
-        classroom_service, drive_service, course_id, assignment_id, criteria_path
+        classroom_service,
+        drive_service,
+        course_id,
+        assignment_id,
+        criteria_path,
+        output_dir,
     )
     grader.grade()

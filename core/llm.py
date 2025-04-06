@@ -54,3 +54,19 @@ def create_feedback(
     except Exception as e:
         console.print(f"[red]Erro ao gerar feedback: {str(e)}[/red]")
         return f"# Erro na Avaliação\n\nNão foi possível gerar o feedback automaticamente.\nErro: {str(e)}"
+
+
+@magentic.prompt(
+    """Você é um professor avaliando o trabalho submetido por um aluno.
+
+Seu trabalho é definir critérios de avaliação para uma determinada atividade / trabalho.
+
+Considerando o enunciado da atividade a seguir, escreva critérios de avaliação precisos e claros a fim de delegar o trabalho de correção para outro professor.
+
+Enunciado da atividade:
+{context}""",
+    model=magentic.OpenaiChatModel("gpt-4o-mini"),
+)
+def generate_criteria(context: str) -> str:
+    """Gera critérios de avaliação usando LLM."""
+    ...
