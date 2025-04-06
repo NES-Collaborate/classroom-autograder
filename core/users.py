@@ -18,7 +18,7 @@ def get_user_profile(classroom_service: Any, user_id: str) -> Optional[UserProfi
         user_id: ID do usuário
 
     Returns:
-        Dict com informações do usuário ou None se houver erro
+        UserProfile com informações do usuário ou None se houver erro
     """
     try:
         profile = classroom_service.userProfiles().get(userId=user_id).execute()

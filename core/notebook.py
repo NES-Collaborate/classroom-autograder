@@ -1,7 +1,6 @@
 """Module for processing Jupyter notebooks."""
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import nbformat
 from rich.console import Console
@@ -9,18 +8,7 @@ from rich.console import Console
 console = Console()
 
 
-def read_notebook(file_path: Path) -> Optional[Dict[str, Any]]:
-    """Lê e retorna o conteúdo de um notebook Jupyter."""
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            notebook = nbformat.read(f, as_version=4)
-        return notebook
-    except Exception as e:
-        console.print(f"[red]Erro ao ler notebook {file_path}: {str(e)}[/red]")
-        return None
-
-
-def extract_cells(notebook: Dict[str, Any]) -> List[Dict[str, Any]]:
+def extract_cells(notebook: dict[str, Any]) -> list[dict[str, Any]]:
     """Extrai células de código e markdown do notebook."""
     cells = []
     for cell in notebook.get("cells", []):
@@ -37,9 +25,12 @@ def extract_cells(notebook: Dict[str, Any]) -> List[Dict[str, Any]]:
     return cells
 
 
-def process_notebook(file_path: Path) -> Optional[List[Dict[str, Any]]]:
+def process_notebook(notebook_stream: bytes) -> list[dict[str, Any]] | None:
     """Processa um notebook Jupyter e retorna suas células."""
-    notebook = read_notebook(file_path)
-    if notebook:
-        return extract_cells(notebook)
-    return None
+    try:
+        notebook = nbformat.reads(notebook_stream.decode("utf-8"), as_version=4)
+    except Exception as e:
+        console.print(f"[red]Erro ao ler notebook: {str(e)}[/red]")
+        return None
+
+    return extract_cells(notebook)

@@ -1,67 +1,54 @@
 """Module for LLM integration."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 import magentic
 from rich.console import Console
+
+from models import UserProfile
 
 console = Console()
 
 
 @magentic.prompt(
-    """
-Você está avaliando uma submissão de um notebook Jupyter. Analise cada célula e forneça feedback específico.
+    """Você é um professor avaliando o trabalho submetido por um aluno.
+Seu trabalho é avaliar de forma imparcial e fornecer feedback construtivo.
+O feedback deve ser claro, direto e útil para o aluno.
 
-Para cada célula, considere:
-1. Qualidade do código
-2. Legibilidade
-3. Eficiência
-4. Correção do resultado
+O feedback deve incluir:
+1. Pontos positivos: O que o aluno fez bem?
+2. Pontos negativos: O que o aluno pode melhorar?
+3. Sugestões: Como o aluno pode melhorar?
+4. Pontuação: Qual é a pontuação final do aluno? [Entre 0 e 100]
 
-Template do feedback:
+O feedback deve ser escrito em português e deve ser claro e direto.
 
-# Avaliação
+Considere o seguinte trabalho submetido pelo aluno {student_name}:
 
-## Nota Final
-[nota]
+{context}
 
-## Feedback Detalhado
-
-[feedback por célula]
-
-## Comentários Gerais
-[comentários gerais]
-
-Células:
-{cells}
-
-Critérios de Avaliação:
+Critérios de avaliação:
 {criteria}
 """,
     model=magentic.OpenaiChatModel("gpt-4o-mini"),
 )
-def evaluate_notebook(
-    cells: List[Dict[str, Any]], criteria: Optional[str] = None
-) -> str:
+def evaluate_student_submissions(context: str, criteria: str, student_name: str) -> str:
     """Avalia células de um notebook usando LLM."""
     ...
 
 
 def create_feedback(
-    student_id: str,
-    cells: List[Dict[str, Any]],
-    criteria_file: Optional[Path] = None,
+    student: UserProfile,
+    context: str,
+    criteria_file: Path,
 ) -> str:
     """Cria feedback para uma submissão."""
     try:
-        # Carrega critérios de avaliação se fornecidos
-        criteria = None
-        if criteria_file and criteria_file.exists():
-            criteria = criteria_file.read_text(encoding="utf-8")
+        criteria = criteria_file.read_text(encoding="utf-8")
 
-        # Gera avaliação
-        feedback = evaluate_notebook(cells, criteria)
+        # TODO: use "with open" to use models.
+        feedback = evaluate_student_submissions(context, criteria, student.full_name)
+
         return feedback
 
     except Exception as e:

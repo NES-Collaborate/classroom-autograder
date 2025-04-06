@@ -10,13 +10,15 @@ from rich.console import Console
 console = Console()
 
 
-def download_file(drive_service, file_id: str, silent: bool = False) -> Optional[bytes]:
+def download_file(
+    file_id: str, drive_service: ..., silent: bool = False
+) -> Optional[bytes]:
     """
     Download arquivo do Google Drive com progresso.
 
     Args:
-        drive_service: Serviço autenticado do Google Drive
         file_id: ID do arquivo no Drive
+        drive_service: Serviço autenticado do Google Drive
         silent: Se True, não exibe progresso do download
 
     Returns:

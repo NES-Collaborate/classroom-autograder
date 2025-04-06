@@ -3,8 +3,8 @@ from typing import Tuple
 from rich.console import Console
 from rich.status import Status
 
-from auth.google import get_service
-from classroom import get_assignments, get_courses
+from core.classroom import get_assignments, get_courses
+from core.google import get_service
 from core.grader import grade_submissions
 
 from .questions import (

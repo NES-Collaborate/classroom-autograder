@@ -5,12 +5,11 @@ from typing import Any, List
 
 from rich.console import Console
 
-from classroom.drive import download_file
-from classroom.users import get_user_profile
+from core.stringfy import AttachmentParser
+from core.users import get_user_profile
 from models import Attachment, Submission, UserProfile
 
 from .llm import create_feedback
-from .notebook import process_notebook
 
 console = Console()
 
@@ -36,6 +35,7 @@ class SubmissionsGrader:
 
     def _prepare_output_dir(self) -> Path:
         """Prepara diretório de saída."""
+        # TODO: definir saída como argumento do grader.
         output_dir = Path("output") / self.course_id / self.assignment_id
         output_dir.mkdir(parents=True, exist_ok=True)
         console.print(f"[green]Feedbacks serão salvos em: {output_dir}[/green]")
@@ -59,10 +59,12 @@ class SubmissionsGrader:
             console.print(f"[red]Erro ao buscar submissões: {str(e)}[/red]")
             return []
 
-    def _save_feedback(self, student_id: str, student_name: str, feedback: str) -> None:
+    def _save_feedback(self, student: UserProfile, feedback: str) -> None:
         """Salva feedback em arquivo markdown."""
         try:
-            student_file = self.output_dir / f"{student_id}_{student_name}_feedback.md"
+            student_file = (
+                self.output_dir / f"{student.id}_{student.full_name}_feedback.md"
+            )
             student_file.write_text(feedback, encoding="utf-8")
         except Exception as e:
             console.print(f"[red]Erro ao salvar feedback: {str(e)}[/red]")
@@ -83,6 +85,13 @@ class SubmissionsGrader:
         except Exception as e:
             console.print(f"[red]Erro ao registrar erro: {str(e)}[/red]")
 
+    def _get_submitted_context(self, attachments: list[Attachment]) -> str:
+        """Retorna em formato de string o contexto de tudo que foi submetido."""
+        return "\n\n".join(
+            AttachmentParser(attachment, self.drive_service, self.output_dir).stringfy()
+            for attachment in attachments
+        )
+
     def _process_submission(
         self,
         student: UserProfile,
@@ -98,45 +107,13 @@ class SubmissionsGrader:
             return
 
         # TODO: processar todas as submissões de todos os tipos (drivefile, form, link, youtubevideo)
-        # Processa primeiro anexo (assume um único notebook)
-        drive_file = attachments[0].driveFile
-        if drive_file is None:
-            self._log_error(
-                student.full_name,
-                "### Erro: Anexo inválido\n- Arquivo não encontrado",
-            )
-            return
+        student_submitted_context = self._get_submitted_context(attachments)
 
-        file_id = drive_file.id
-
-        # TODO: tornar esta função mais geral, não necessáriamente teremos somente um jupyternotebook.
-        # Download e processamento do notebook
-        content = download_file(self.drive_service, file_id, silent=True)
-        if not content:
-            self._log_error(
-                student.full_name,
-                "### Erro: Download falhou\n- Não foi possível baixar o arquivo",
-            )
-            return
-
-        # Salva notebook temporariamente
-        temp_file = self.output_dir / f"{student.id}_{student.full_name}_temp.ipynb"
-        temp_file.write_bytes(content)
-
-        # Processa células
-        cells = process_notebook(temp_file)
-        temp_file.unlink()  # Remove arquivo temporário
-
-        if not cells:
-            self._log_error(
-                student.full_name,
-                "### Erro: Notebook inválido\n- Não foi possível processar o notebook",
-            )
-            return
-
-        # TODO: reescrever esse "create_feedback" para receber como arugmento um "contexto" geral, de todas as subumissões, não só "cells".
-        feedback = create_feedback(student.id, cells, self.criteria_path)
-        self._save_feedback(student.id, student.full_name, feedback)
+        # TODO: adicionar informações adicionais sobre o enunciado da atividade, pontuação, etc.
+        feedback = create_feedback(
+            student, student_submitted_context, self.criteria_path
+        )
+        self._save_feedback(student, feedback)
 
     def _process_submissions_batch(self, submissions: List[Submission]) -> None:
         """Processa um lote de submissões."""
@@ -152,6 +129,9 @@ class SubmissionsGrader:
                 )
                 continue
 
+            console.print(
+                f"[blue]Processando submissão de[/blue] [cyan]{student.full_name}[/cyan] ([yellow]{student.email}[/yellow])..."
+            )
             try:
                 if submission.assignmentSubmission is None:
                     self._log_error(
@@ -169,6 +149,9 @@ class SubmissionsGrader:
                     continue
 
                 self._process_submission(student, attachments)
+                console.print(
+                    f"[green]✓[/green] Feedback criado para [cyan]{student.full_name}[/cyan]"
+                )
 
             except Exception as e:
                 student_name = student.full_name
