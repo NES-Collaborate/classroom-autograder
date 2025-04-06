@@ -28,6 +28,7 @@ def get_service(
             "https://www.googleapis.com/auth/classroom.rosters.readonly",
             "https://www.googleapis.com/auth/classroom.profile.emails",
             "https://www.googleapis.com/auth/classroom.student-submissions.students.readonly",
+            "https://www.googleapis.com/auth/classroom.addons.teacher",
         ],
         "drive": [
             "https://www.googleapis.com/auth/drive.readonly",
