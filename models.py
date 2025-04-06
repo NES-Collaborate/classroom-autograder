@@ -1,7 +1,14 @@
 from enum import Enum
 from pathlib import Path
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+
+
+class FeedbackResult(BaseModel):
+    """Resultado da avaliação do LLM."""
+
+    feedback: str
+    grade: float = Field(ge=0.0, description="Nota do aluno (calculada pelo LLM)")
 
 
 class SubmissionState(Enum):

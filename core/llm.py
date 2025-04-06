@@ -5,7 +5,7 @@ from pathlib import Path
 import magentic
 from rich.console import Console
 
-from models import UserProfile
+from models import FeedbackResult, UserProfile
 
 console = Console()
 
@@ -15,11 +15,12 @@ console = Console()
 Seu trabalho é avaliar de forma imparcial e fornecer feedback construtivo.
 O feedback deve ser claro, direto e útil para o aluno.
 
-O feedback deve incluir:
-1. Pontos positivos: O que o aluno fez bem?
-2. Pontos negativos: O que o aluno pode melhorar?
-3. Sugestões: Como o aluno pode melhorar?
-4. Pontuação: Qual é a pontuação final do aluno? [Entre 0 e 100]
+Você deve retornar um objeto estruturado com:
+1. feedback: O feedback completo em formato markdown que inclui:
+   - Pontos positivos: O que o aluno fez bem
+   - Pontos negativos: O que o aluno pode melhorar
+   - Sugestões: Como o aluno pode melhorar
+2. grade: A nota do aluno
 
 O feedback deve ser escrito em português e deve ser claro e direto.
 
@@ -32,7 +33,9 @@ Critérios de avaliação:
 """,
     model=magentic.OpenaiChatModel("gpt-4o-mini"),
 )
-def evaluate_student_submissions(context: str, criteria: str, student_name: str) -> str:
+def evaluate_student_submissions(
+    context: str, criteria: str, student_name: str
+) -> FeedbackResult:
     """Avalia células de um notebook usando LLM."""
     ...
 
@@ -41,15 +44,13 @@ def create_feedback(
     student: UserProfile,
     context: str,
     criteria_file: Path,
-) -> str:
+) -> FeedbackResult | str:
     """Cria feedback para uma submissão."""
     try:
         criteria = criteria_file.read_text(encoding="utf-8")
 
         # TODO: use "with open" to use models.
-        feedback = evaluate_student_submissions(context, criteria, student.full_name)
-
-        return feedback
+        return evaluate_student_submissions(context, criteria, student.full_name)
 
     except Exception as e:
         console.print(f"[red]Erro ao gerar feedback: {str(e)}[/red]")
