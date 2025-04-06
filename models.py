@@ -30,6 +30,18 @@ class DriveFile(BaseModel):
     thumbnailUrl: str | None = None
 
 
+class ShareMode(Enum):
+    UNKNOWN_SHARE_MODE = "UNKNOWN_SHARE_MODE"  # No sharing mode specified. This should never be returned.
+    VIEW = "VIEW"  # Students can view the shared file.
+    EDIT = "EDIT"  # Students can edit the shared file.
+    STUDENT_COPY = "STUDENT_COPY"  # Students have a personal copy of the shared file.
+
+
+class SharedDriveFile(BaseModel):
+    driveFile: DriveFile  # Drive file details.
+    shareMode: ShareMode  # Mechanism by which students access the Drive item.
+
+
 class YouTubeVideo(BaseModel):
     id: str
     title: str
@@ -52,7 +64,7 @@ class Form(BaseModel):
 
 # Attachment types
 class Attachment(BaseModel):
-    driveFile: DriveFile | None = None
+    driveFile: DriveFile | SharedDriveFile | None = None
     youTubeVideo: YouTubeVideo | None = None
     link: Link | None = None
     form: Form | None = None
@@ -111,3 +123,44 @@ class UserProfile(BaseModel):
     id: str
     full_name: str
     email: str
+
+
+class CourseWorkState(Enum):
+    COURSE_WORK_STATE_UNSPECIFIED = (
+        "COURSE_WORK_STATE_UNSPECIFIED"  # No state specified. This is never returned.
+    )
+    PUBLISHED = "PUBLISHED"  # Status for work that has been published. This is the default state.
+    DRAFT = "DRAFT"  # Status for work that is not yet published. Work in this state is visible only to course teachers and domain administrators.
+    DELETED = "DELETED"  # Status for work that was published but is now deleted. Work in this state is visible only to course teachers and domain administrators. Work in this state is deleted after some time.
+
+
+class CourseWork(BaseModel):
+    courseId: str  # Identifier of the course. Read-only.
+    id: str  # Classroom-assigned identifier of this course work, unique per course. Read-only.
+    title: str  # Title of this course work. Must be valid UTF-8 string between 1-3000 characters.
+    description: str | None = (
+        None  # Optional description. If set, must be valid UTF-8 string up to 30,000 characters.
+    )
+    materials: list[Attachment] | None = (
+        None  # Optional additional materials. Maximum 20 material items.
+    )
+    state: (
+        CourseWorkState  # Status of this course work. Default is DRAFT if unspecified.
+    )
+    alternateLink: str  # Absolute link to this course work in Classroom web UI. Only populated if state is PUBLISHED. Read-only.
+    creationTime: str  # Timestamp when this course work was created. Read-only. RFC3339 UTC format.
+    updateTime: str  # Timestamp of the most recent change to this course work. Read-only. RFC3339 UTC format.
+    dueDate: dict | None = (
+        None  # Optional date that submissions are due {year, month, day}. Required if dueTime is specified.
+    )
+    dueTime: dict | None = (
+        None  # Optional time of day submissions are due {hours, minutes, seconds, nanos}. Required if dueDate is specified.
+    )
+    scheduledTime: str | None = (
+        None  # Optional timestamp when this course work is scheduled to be published. RFC3339 UTC format.
+    )
+    maxPoints: float | None = (
+        None  # Optional maximum grade for this course work. If zero or unspecified, considered ungraded. Must be non-negative.
+    )
+    workType: CourseWorkType  # Type of this course work. Set when created and cannot be changed.
+    # there's a lot of other fields that can be added here, but they're not needed for now
