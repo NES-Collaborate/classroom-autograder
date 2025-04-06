@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -8,6 +9,19 @@ from core.criteria_generator import CriteriaGenerator
 from models import TeacherProfile
 
 console = Console()
+
+
+class GradingPreference(str, Enum):
+    DRAFT = "Salvar notas como rascunho"
+    RETURN = "Retornar notas automaticamente para os alunos"
+
+
+def get_grading_preference() -> GradingPreference:
+    """Pergunta ao usuário como deseja lidar com as notas."""
+    return questionary.select(
+        "Como você deseja lidar com as notas?",
+        choices=[pref.value for pref in GradingPreference],
+    ).ask()
 
 
 def setup_teacher_profile() -> TeacherProfile:

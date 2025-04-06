@@ -5,6 +5,7 @@ from typing import Any, List
 
 from rich.console import Console
 
+from core.classroom import grade_submission, return_submission
 from core.email import EmailSender
 from core.stringfy import AttachmentParser
 from core.users import get_user_profile
@@ -27,6 +28,7 @@ class SubmissionsGrader:
         criteria_path: Path,
         output_dir: Path,
         send_email: bool = False,
+        return_grades: bool = False,
     ):
         """Inicializa o avaliador de submissões."""
         self.classroom_service = classroom_service
@@ -36,6 +38,7 @@ class SubmissionsGrader:
         self.criteria_path = criteria_path
         self.output_dir = output_dir
         self.send_email = send_email
+        self.return_grades = return_grades
 
     def _get_submissions(self) -> List[Submission]:
         """Busca submissões de uma atividade."""
@@ -90,6 +93,7 @@ class SubmissionsGrader:
 
     def _process_submission(
         self,
+        submission: Submission,
         student: UserProfile,
         attachments: List[Attachment],
     ) -> None:
@@ -102,18 +106,44 @@ class SubmissionsGrader:
             )
             return
 
-        # TODO: processar todas as submissões de todos os tipos (drivefile, form, link, youtubevideo)
         student_submitted_context = self._get_submitted_context(attachments)
 
         # TODO: adicionar informações adicionais sobre o enunciado da atividade, pontuação, etc.
-        feedback = create_feedback(
-            student, student_submitted_context, self.criteria_path
-        )
-        self._save_feedback(student, feedback)
+        result = create_feedback(student, student_submitted_context, self.criteria_path)
 
+        # Se retornou string, é mensagem de erro
+        if isinstance(result, str):
+            self._log_error(student.full_name, result)
+            return
+
+        # Salva o feedback e processa as notas
+        self._save_feedback(student, result.feedback)
+
+        # Grade the submission in Classroom
+        grade_submission(
+            self.classroom_service,
+            self.course_id,
+            self.assignment_id,
+            submission.id,
+            result.grade,
+            result.grade if self.return_grades else None,
+        )
+
+        # Return the submission if requested
+        if self.return_grades:
+            return_submission(
+                self.classroom_service,
+                self.course_id,
+                self.assignment_id,
+                submission.id,
+            )
+
+        # Send email if requested
         if self.send_email:
             email_sender = EmailSender.get_instance()
-            email_sender.send_email(student.email, "Feedback da Atividade", feedback)
+            email_sender.send_email(
+                student.email, "Feedback da Atividade", result.feedback
+            )
 
     def _process_submissions_batch(self, submissions: List[Submission]) -> None:
         """Processa um lote de submissões."""
@@ -148,7 +178,7 @@ class SubmissionsGrader:
                     )
                     continue
 
-                self._process_submission(student, attachments)
+                self._process_submission(submission, student, attachments)
                 console.print(
                     f"[green]✓[/green] Feedback criado para [cyan]{student.full_name}[/cyan]"
                 )
@@ -187,6 +217,7 @@ def grade_submissions(
     criteria_path: Path,
     output_dir: Path,
     send_email: bool = False,
+    return_grades: bool = False,
 ) -> None:
     """Função de conveniência para processar e avaliar submissões."""
     grader = SubmissionsGrader(
@@ -197,5 +228,6 @@ def grade_submissions(
         criteria_path,
         output_dir,
         send_email,
+        return_grades,
     )
     grader.grade()

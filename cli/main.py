@@ -9,8 +9,10 @@ from core.google import get_service
 from core.grader import grade_submissions
 
 from .questions import (
+    GradingPreference,
     get_assignment_id,
     get_course_id,
+    get_grading_preference,
     select_assignment,
     select_course,
     select_or_generate_criteria,
@@ -76,7 +78,9 @@ def main():
         )
 
         send_email = should_send_email()
+        grading_preference = get_grading_preference()
 
+        return_grades = grading_preference == GradingPreference.RETURN
         grade_submissions(
             classroom_service,
             drive_service,
@@ -85,6 +89,7 @@ def main():
             criteria_path,
             output_dir,
             send_email=send_email,
+            return_grades=return_grades,
         )
 
         console.print("\n[green]✨ Processo concluído![/green]")
