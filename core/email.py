@@ -29,7 +29,7 @@ class EmailSender:
         self.profile = profile
         self.smtp = SMTP_SSL(self.profile.smtp_server, self.profile.smtp_port)
         self.smtp.login(self.profile.email, self.profile.smtp_password)
-        self.smtp.set_debuglevel(1)
+        self.smtp.set_debuglevel(0)
 
         # Setup Jinja2 environment
         self.jinja_env = Environment(
