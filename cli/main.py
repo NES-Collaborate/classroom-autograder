@@ -53,7 +53,7 @@ def get_selection() -> Tuple[str | None, str | None]:
 
 def main():
     """Função principal do CLI."""
-    console.print("[bold blue]🎓 Classroom Autograder[/bold blue]\n")
+    console.print("[bold blue]🎓 Classroom Autograder 🎓[/bold blue]\n")
 
     try:
         # Obtém seleções do usuário
