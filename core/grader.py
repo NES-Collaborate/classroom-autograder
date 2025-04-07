@@ -275,20 +275,12 @@ class SubmissionsGrader:
                 menor_nota = min(notas)
 
                 # Distribuição das notas
-                ranges = [(0, 2), (2, 4), (4, 6), (6, 8), (8, 10)]
                 logger.info("\n[bold cyan]Distribuição das notas:[/bold cyan]")
                 logger.info(f"Média: {media:.1f}")
                 logger.info(f"Maior nota: {maior_nota:.1f}")
                 logger.info(f"Menor nota: {menor_nota:.1f}")
 
-                for inicio, fim in ranges:
-                    count = sum(1 for nota in notas if inicio <= nota < fim)
-                    perc = count / len(notas) * 100
-                    logger.info(f"Entre {inicio} e {fim}: {count} alunos ({perc:.1f}%)")
-
             logger.info(f"\nTaxa de erros: {(stats['erros'] / stats['total']):.1%}")
-
-            logger.success("✨ Concluído!")
 
         except Exception as e:
             logger.error(f"Erro ao processar submissões: {str(e)}")
