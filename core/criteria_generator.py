@@ -1,25 +1,19 @@
 from pathlib import Path
 
 from core import logger
-from core.classroom import get_course_work
 from core.llm import generate_criteria
 from core.stringfy import AttachmentParser
+from models import CourseWork
 
 
 class CriteriaGenerator:
     def __init__(
         self,
-        course_id: str,
-        assignment_id: str,
-        classroom_service: ...,
+        course_work: CourseWork,
         drive_service: ...,
         output_dir: Path,
     ) -> None:
-        course_work = get_course_work(classroom_service, course_id, assignment_id)
-        if course_work is None:
-            logger.error("❌ Erro ao buscar atividade")
-            raise ValueError("Erro ao buscar o contexto da atividade.")
-
+        """Inicializa o gerador de critérios."""
         self.course_work = course_work
         self.drive_service = drive_service
         self.output_dir = output_dir

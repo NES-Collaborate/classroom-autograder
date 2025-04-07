@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Tuple
 
 from rich.console import Console
 from rich.status import Status
@@ -7,11 +6,10 @@ from rich.status import Status
 from core.classroom import get_assignments, get_courses
 from core.google import get_service
 from core.grader import grade_submissions
+from models import Course, CourseWork
 
 from .questions import (
     GradingPreference,
-    get_assignment_id,
-    get_course_id,
     get_grading_preference,
     select_assignment,
     select_course,
@@ -22,7 +20,7 @@ from .questions import (
 console = Console()
 
 
-def get_selection() -> Tuple[str | None, str | None]:
+def get_selection() -> tuple[Course | None, CourseWork | None]:
     """Obtém as seleções do usuário."""
     classroom_service = get_service("classroom", "v1")
 
@@ -33,26 +31,22 @@ def get_selection() -> Tuple[str | None, str | None]:
         console.print("[red]Nenhum curso encontrado.[/red]")
         return None, None
 
-    selected_course = select_course(courses)
-    if not selected_course:
+    course = select_course(classroom_service, courses)
+    if not course:
         return None, None
 
-    course_id = get_course_id(selected_course)
-
     with Status("Carregando atividades...", spinner="dots"):
-        assignments = get_assignments(classroom_service, course_id)
+        assignments = get_assignments(classroom_service, course.id)
 
     if not assignments:
         console.print("[red]Nenhuma atividade encontrada.[/red]")
         return None, None
 
-    selected_assignment = select_assignment(assignments)
-    if not selected_assignment:
+    coursework = select_assignment(classroom_service, course.id, assignments)
+    if not coursework:
         return None, None
 
-    assignment_id = get_assignment_id(selected_assignment)
-
-    return course_id, assignment_id
+    return course, coursework
 
 
 def main():
@@ -61,11 +55,11 @@ def main():
 
     try:
         # Obtém seleções do usuário
-        course_id, assignment_id = get_selection()
-        if not course_id or not assignment_id:
+        course, coursework = get_selection()
+        if not course or not coursework:
             return
 
-        output_dir = Path("output") / course_id / assignment_id
+        output_dir = Path("output") / course.id / coursework.id
         output_dir.mkdir(parents=True, exist_ok=True)
 
         console.print(f"[green]Feedbacks serão salvos em: {output_dir}[/green]")
@@ -74,7 +68,9 @@ def main():
         drive_service = get_service("drive", "v3")
 
         criteria_path = select_or_generate_criteria(
-            course_id, assignment_id, classroom_service, drive_service, output_dir
+            coursework,
+            drive_service,
+            output_dir,
         )
 
         send_email = should_send_email()
@@ -84,8 +80,8 @@ def main():
         grade_submissions(
             classroom_service,
             drive_service,
-            course_id,
-            assignment_id,
+            course,
+            coursework,
             criteria_path,
             output_dir,
             send_email=send_email,

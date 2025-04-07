@@ -6,7 +6,7 @@ import questionary
 from rich.console import Console
 
 from core.criteria_generator import CriteriaGenerator
-from models import TeacherProfile
+from models import Course, CourseWork, TeacherProfile
 
 console = Console()
 
@@ -72,10 +72,8 @@ def select_criteria_mode() -> str:
 
 
 def select_or_generate_criteria(
-    course_id: str,
-    assignment_id: str,
-    classroom_service: ...,
-    drive_service: ...,
+    coursework: CourseWork,
+    drive_service: Any,
     output_dir: Path,
 ) -> Path:
     """Gerencia a seleção ou geração de critérios de avaliação."""
@@ -83,7 +81,9 @@ def select_or_generate_criteria(
 
     if mode == "Gerar um novo baseado no enunciado":
         criteria_generator = CriteriaGenerator(
-            course_id, assignment_id, classroom_service, drive_service, output_dir
+            coursework,
+            drive_service,
+            output_dir,
         )
         return criteria_generator.generate()
 
@@ -122,15 +122,40 @@ def get_assignment_id(selected_assignment: str) -> str:
     return selected_assignment.split("(")[-1].strip(")")
 
 
-def select_course(courses: List[Dict[str, Any]]) -> str:
-    """Solicita ao usuário que selecione um curso."""
-    return questionary.select(
+def get_course(classroom_service: Any, selected_course: str) -> Course:
+    """Retorna o objeto Course a partir da seleção do usuário."""
+    course_id = get_course_id(selected_course)
+    result = classroom_service.courses().get(id=course_id).execute()
+    return Course.model_validate(result)
+
+
+def get_coursework(
+    classroom_service: Any, course_id: str, selected_assignment: str
+) -> CourseWork:
+    """Retorna o objeto CourseWork a partir da seleção do usuário."""
+    assignment_id = get_assignment_id(selected_assignment)
+    result = (
+        classroom_service.courses()
+        .courseWork()
+        .get(courseId=course_id, id=assignment_id)
+        .execute()
+    )
+    return CourseWork.model_validate(result)
+
+
+def select_course(classroom_service: Any, courses: List[Dict[str, Any]]) -> Course:
+    """Solicita ao usuário que selecione um curso e retorna o objeto Course."""
+    selected = questionary.select(
         "Selecione o curso:", choices=create_course_choices(courses)
     ).ask()
+    return get_course(classroom_service, selected)
 
 
-def select_assignment(assignments: List[Dict[str, Any]]) -> str:
-    """Solicita ao usuário que selecione uma atividade."""
-    return questionary.select(
+def select_assignment(
+    classroom_service: Any, course_id: str, assignments: List[Dict[str, Any]]
+) -> CourseWork:
+    """Solicita ao usuário que selecione uma atividade e retorna o objeto CourseWork."""
+    selected = questionary.select(
         "Selecione a atividade:", choices=create_assignment_choices(assignments)
     ).ask()
+    return get_coursework(classroom_service, course_id, selected)

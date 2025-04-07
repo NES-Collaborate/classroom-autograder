@@ -8,7 +8,7 @@ from core.classroom import grade_submission, return_submission
 from core.email import EmailSender
 from core.stringfy import AttachmentParser
 from core.users import get_user_profile
-from models import Attachment, Submission, UserProfile
+from models import Attachment, Course, CourseWork, Submission, UserProfile
 
 from .llm import create_feedback
 
@@ -20,8 +20,8 @@ class SubmissionsGrader:
         self,
         classroom_service: Any,
         drive_service: Any,
-        course_id: str,
-        assignment_id: str,
+        course: Course,
+        coursework: CourseWork,
         criteria_path: Path,
         output_dir: Path,
         send_email: bool = False,
@@ -30,8 +30,8 @@ class SubmissionsGrader:
         """Inicializa o avaliador de submissões."""
         self.classroom_service = classroom_service
         self.drive_service = drive_service
-        self.course_id = course_id
-        self.assignment_id = assignment_id
+        self.course = course
+        self.coursework = coursework
         self.criteria_path = criteria_path
         self.output_dir = output_dir
         self.send_email = send_email
@@ -44,7 +44,7 @@ class SubmissionsGrader:
                 self.classroom_service.courses()
                 .courseWork()
                 .studentSubmissions()
-                .list(courseId=self.course_id, courseWorkId=self.assignment_id)
+                .list(courseId=self.course.id, courseWorkId=self.coursework.id)
                 .execute()
             )
             return [
@@ -120,8 +120,8 @@ class SubmissionsGrader:
             logger.info(f"[bold green]Nota {result.grade}[/bold green]")
             success = grade_submission(
                 self.classroom_service,
-                self.course_id,
-                self.assignment_id,
+                self.course.id,
+                self.coursework.id,
                 submission.id,
                 result.grade,
                 result.grade if self.return_grades else None,
@@ -132,8 +132,8 @@ class SubmissionsGrader:
             if self.return_grades and success:
                 return_submission(
                     self.classroom_service,
-                    self.course_id,
-                    self.assignment_id,
+                    self.course.id,
+                    self.coursework.id,
                     submission.id,
                 )
         else:
@@ -144,10 +144,12 @@ class SubmissionsGrader:
         # Send email if requested
         if self.send_email:
             email_sender = EmailSender.get_instance()
-            email_sender.send_email(
+
+            email_sender.send(
                 student.email,
-                f"[NES] Feedback da Atividade - ({self.assignment_id})",
-                result.feedback,
+                result,
+                course=self.course,
+                coursework=self.coursework,
             )
 
     def _process_submissions_batch(self, submissions: list[Submission]) -> None:
@@ -199,8 +201,8 @@ class SubmissionsGrader:
 def grade_submissions(
     classroom_service: Any,
     drive_service: Any,
-    course_id: str,
-    assignment_id: str,
+    course: Course,
+    coursework: CourseWork,
     criteria_path: Path,
     output_dir: Path,
     send_email: bool = False,
@@ -210,8 +212,8 @@ def grade_submissions(
     grader = SubmissionsGrader(
         classroom_service,
         drive_service,
-        course_id,
-        assignment_id,
+        course,
+        coursework,
         criteria_path,
         output_dir,
         send_email,

@@ -142,6 +142,19 @@ class CourseWorkState(Enum):
     DELETED = "DELETED"  # Status for work that was published but is now deleted. Work in this state is visible only to course teachers and domain administrators. Work in this state is deleted after some time.
 
 
+class Course(BaseModel):
+    id: str
+    name: str
+    description: str | None = None
+    alternateLink: str
+    creationTime: str
+    updateTime: str
+    ownerId: str
+    teacherGroupEmail: str | None = None
+    courseState: str
+    guardiansEnabled: bool = False
+
+
 class TeacherProfile(BaseModel):
     """Perfil do professor com informações para comunicação."""
 
