@@ -11,18 +11,18 @@ from models import Course, CourseWork, FeedbackResult, TeacherProfile
 
 
 class EmailSender:
-    CONFIG_DIR = Path.home() / ".config" / "classroom-autograder"
-    TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+    ROOT = Path(__file__).parent.parent
+    TEMPLATE_DIR = ROOT / "templates"
 
     @classmethod
     def get_instance(cls) -> "EmailSender":
         """Retorna uma instância do EmailSender com as configurações do perfil."""
-        profile = TeacherProfile.load(cls.CONFIG_DIR)
+        profile = TeacherProfile.load(cls.ROOT)
         if not profile:
             from cli.questions import setup_teacher_profile
 
             profile = setup_teacher_profile()
-            profile.save(cls.CONFIG_DIR)
+            profile.save(cls.ROOT)
 
         return cls(profile)
 
