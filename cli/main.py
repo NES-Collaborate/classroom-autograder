@@ -5,7 +5,7 @@ from rich.status import Status
 
 from core.classroom import get_assignments, get_courses
 from core.google import get_service
-from core.grader import grade_submissions
+from core.grader import SubmissionsGrader
 from models import Course, CourseWork
 
 from .questions import (
@@ -14,6 +14,7 @@ from .questions import (
     select_assignment,
     select_course,
     select_or_generate_criteria,
+    send_email_copy_confirmation,
     should_send_email,
 )
 
@@ -74,10 +75,15 @@ def main():
         )
 
         send_email = should_send_email()
+        if send_email:
+            send_email_copy = send_email_copy_confirmation()
+        else:
+            send_email_copy = False
+
         grading_preference = get_grading_preference()
 
         return_grades = grading_preference == GradingPreference.RETURN
-        grade_submissions(
+        submissions_grader = SubmissionsGrader(
             classroom_service,
             drive_service,
             course,
@@ -85,8 +91,11 @@ def main():
             criteria_path,
             output_dir,
             send_email=send_email,
+            send_email_copy=send_email_copy,
             return_grades=return_grades,
         )
+
+        submissions_grader.grade()
 
         console.print("\n[green]✨ Processo concluído![/green]")
 

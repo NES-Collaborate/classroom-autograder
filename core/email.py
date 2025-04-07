@@ -15,7 +15,7 @@ class EmailSender:
     TEMPLATE_DIR = ROOT / "templates"
 
     @classmethod
-    def get_instance(cls) -> "EmailSender":
+    def get_instance(cls, send_copy: bool = False) -> "EmailSender":
         """Retorna uma instância do EmailSender com as configurações do perfil."""
         profile = TeacherProfile.load(cls.ROOT)
         if not profile:
@@ -24,11 +24,12 @@ class EmailSender:
             profile = setup_teacher_profile()
             profile.save(cls.ROOT)
 
-        return cls(profile)
+        return cls(profile, send_copy=send_copy)
 
-    def __init__(self, profile: TeacherProfile):
+    def __init__(self, profile: TeacherProfile, *, send_copy: bool = False):
         """Inicializa o EmailSender com as configurações do perfil."""
         self.profile = profile
+        self.send_copy = send_copy
         self.smtp = SMTP_SSL(self.profile.smtp_server, self.profile.smtp_port)
         self.smtp.login(self.profile.email, self.profile.smtp_password)
         self.smtp.set_debuglevel(0)
@@ -120,4 +121,8 @@ class EmailSender:
                 coursework=coursework,
             )
             self.smtp.send_message(msg)
+            if self.send_copy:
+                self.smtp.send_message(
+                    msg, from_addr=self.profile.email, to_addrs=self.profile.email
+                )
         logger.info(f"[dim]✉️  Email enviado para {to_address}[/dim]")

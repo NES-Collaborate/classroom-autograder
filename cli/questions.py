@@ -60,6 +60,13 @@ def should_send_email() -> bool:
     ).ask()
 
 
+def send_email_copy_confirmation() -> bool:
+    """Solicita ao usuário se deseja enviar uma copia dos feedbacks por email."""
+    return questionary.confirm(
+        "Deseja receber uma cópia dos feedbacks enviador por email?", default=False
+    ).ask()
+
+
 def select_criteria_mode() -> str:
     """Solicita ao usuário que escolha entre usar um critério existente ou gerar um novo."""
     return questionary.select(
