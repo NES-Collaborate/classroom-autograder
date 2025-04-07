@@ -44,7 +44,7 @@ class EmailSender:
         self,
         to_address: str,
         subject: str,
-        body: str,
+        feedback: FeedbackResult,
         *,
         course: Course,
         coursework: CourseWork,
@@ -57,7 +57,8 @@ class EmailSender:
 
         # Render template with context
         context = {
-            "feedback_content": body,
+            "feedback_content": self._convert_markdown_to_html(feedback.feedback),
+            "feedback_grade": feedback.grade,
             "whatsapp_link": f"{self.profile.whatsapp_link}?text=Olá *{self.profile.name}*, gostaria de discutir o feedback recebido sobre a atividade *{coursework.title}* do curso *{course.name}* com você!!",
             "teacher_name": self.profile.name,
         }
@@ -75,7 +76,7 @@ class EmailSender:
 
         html = self.template.render(**context)
 
-        text_part = MIMEText(body, "plain")
+        text_part = MIMEText(feedback.feedback, "plain")
         html_part = MIMEText(html, "html")
 
         msg.attach(text_part)
@@ -110,13 +111,11 @@ class EmailSender:
                 email_title += f"/{coursework.maxPoints:.1f}"
             email_title += ")"
 
-        html_feedback = self._convert_markdown_to_html(feedback.feedback)
-
         with logger.status(f"Enviando email para [blue]{to_address}[/blue]..."):
             msg = self._create_html_message(
                 to_address,
                 email_title,
-                html_feedback,
+                feedback=feedback,
                 course=course,
                 coursework=coursework,
             )
