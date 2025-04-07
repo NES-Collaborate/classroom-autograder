@@ -3,12 +3,21 @@
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from core import logger
 from core.classroom import grade_submission, return_submission
 from core.email import EmailSender
 from core.stringfy import AttachmentParser
 from core.users import get_user_profile
-from models import Attachment, Course, CourseWork, Submission, UserProfile
+from models import (
+    Attachment,
+    Course,
+    CourseWork,
+    FeedbackResult,
+    Submission,
+    UserProfile,
+)
 
 from .llm import create_feedback
 
@@ -25,6 +34,7 @@ class SubmissionsGrader:
         criteria_path: Path,
         output_dir: Path,
         send_email: bool = False,
+        send_email_copy: bool = False,
         return_grades: bool = False,
     ):
         """Inicializa o avaliador de submissões."""
@@ -34,8 +44,10 @@ class SubmissionsGrader:
         self.coursework = coursework
         self.criteria_path = criteria_path
         self.output_dir = output_dir
-        self.send_email = send_email
         self.return_grades = return_grades
+        self.email_sender = (
+            EmailSender.get_instance(send_email_copy) if send_email else None
+        )
 
     def _get_submissions(self) -> list[Submission]:
         """Busca submissões de uma atividade."""
@@ -93,7 +105,7 @@ class SubmissionsGrader:
         submission: Submission,
         student: UserProfile,
         attachments: list[Attachment],
-    ) -> None:
+    ) -> FeedbackResult | None:
         """Processa uma submissão individual."""
 
         if not attachments:
@@ -101,16 +113,14 @@ class SubmissionsGrader:
                 student.full_name,
                 "Nenhum arquivo encontrado",
             )
-            return
+            return None
 
         student_submitted_context = self._get_submitted_context(attachments)
-
-        # TODO: adicionar informações adicionais sobre o enunciado da atividade, pontuação, etc.
         result = create_feedback(student, student_submitted_context, self.criteria_path)
 
         if isinstance(result, str):
             self._log_error(student.full_name, result)
-            return
+            return None
 
         # Salva o feedback
         self._save_feedback(student, result.feedback)
@@ -128,8 +138,7 @@ class SubmissionsGrader:
             )
             if not success:
                 logger.error("❌ Falha ao atribuir nota")
-
-            if self.return_grades and success:
+            elif self.return_grades:
                 return_submission(
                     self.classroom_service,
                     self.course.id,
@@ -142,27 +151,36 @@ class SubmissionsGrader:
             )
 
         # Send email if requested
-        if self.send_email:
-            email_sender = EmailSender.get_instance()
-
-            email_sender.send(
+        if self.email_sender:
+            self.email_sender.send(
                 student.email,
                 result,
                 course=self.course,
                 coursework=self.coursework,
             )
 
-    def _process_submissions_batch(self, submissions: list[Submission]) -> None:
+        return result
+
+    def _process_submissions_batch(self, submissions: list[Submission]) -> dict:
         """Processa um lote de submissões."""
-        for submission in submissions:
+        stats = {
+            "total": len(submissions),
+            "processados": 0,
+            "erros": 0,
+            "notas": [],
+            "alunos": [],
+        }
+
+        total = len(submissions)
+        for idx, submission in enumerate(submissions, 1):
+            print()
+            logger.info(f"[bold]Processando submissão {idx}/{total}[/bold]")
             student_id = submission.userId
             student = get_user_profile(self.classroom_service, student_id)
             if student is None:
                 self._log_error(student_id, "Usuário não encontrado")
                 continue
 
-            # Nome do aluno em destaque
-            print()
             logger.info(
                 f"[bold cyan]➤ {student.full_name}[/bold cyan] ({student.email})"
             )
@@ -172,15 +190,33 @@ class SubmissionsGrader:
                     not submission.assignmentSubmission
                     or not submission.assignmentSubmission.attachments
                 ):
-                    self._log_error(student.full_name, "Nenhum arquivo encontrado")
+                    self._log_error(student_id, "Nenhum arquivo encontrado")
+                    stats["erros"] += 1
                     continue
 
-                self._process_submission(
+                result = self._process_submission(
                     submission, student, submission.assignmentSubmission.attachments
                 )
 
+                if result and result.grade is not None:
+                    stats["notas"].append(result.grade)
+                    stats["alunos"].append(
+                        {
+                            "Nome": student.full_name,
+                            "Email": student.email,
+                            "Nota": result.grade,
+                            "Status": submission.state.value,
+                            "Data de Submissão": submission.updateTime.split("T")[0],
+                            "Atraso": "Sim" if submission.late else "Não",
+                        }
+                    )
+                    stats["processados"] += 1
+
             except Exception as e:
                 self._log_error(student.full_name, f"Erro: {str(e)}")
+                stats["erros"] += 1
+
+        return stats
 
     def grade(self) -> None:
         """Processa e avalia as submissões de uma atividade."""
@@ -190,33 +226,70 @@ class SubmissionsGrader:
                 logger.warning("Nenhuma submissão encontrada")
                 return
 
-            self._process_submissions_batch(submissions)
+            stats = self._process_submissions_batch(submissions)
+
+            # Gera relatório Excel
+            if stats["alunos"]:
+                # Ordena por nome e formata o DataFrame
+                df = pd.DataFrame(stats["alunos"])
+                df = df.sort_values("Nome")
+
+                excel_path = self.output_dir / "relatorio_notas.xlsx"
+                with pd.ExcelWriter(excel_path, engine="openpyxl", mode="w") as writer:
+                    df.to_excel(writer, index=False, sheet_name="Notas")
+
+                    # Obtém a planilha para formatação
+                    ws = writer.sheets["Notas"]
+
+                    # Ajusta largura das colunas
+                    for column in ws.columns:
+                        max_length = 0
+                        column_name = column[0].column_letter
+                        for cell in column:
+                            try:
+                                if len(str(cell.value)) > max_length:
+                                    max_length = len(str(cell.value))
+                            except Exception:
+                                pass
+                        adjusted_width = max_length + 2
+                        ws.column_dimensions[column_name].width = adjusted_width
+
+                    # Formata cabeçalho
+                    for cell in ws[1]:
+                        cell.font = cell.font.copy(bold=True)
+                        cell.fill = cell.fill.copy(
+                            patternType="solid", fgColor="E2E2E2"
+                        )
+
+                logger.info(f"[green]📊 Relatório salvo em {excel_path}[/green]")
+
+            # Exibe estatísticas
+            logger.info("\n[bold]📊 Estatísticas da Avaliação:[/bold]")
+            logger.info(f"Total de submissões: {stats['total']}")
+            logger.info(f"Submissões processadas: {stats['processados']}")
+
+            if stats["notas"]:
+                notas = stats["notas"]
+                media = sum(notas) / len(notas)
+                maior_nota = max(notas)
+                menor_nota = min(notas)
+
+                # Distribuição das notas
+                ranges = [(0, 2), (2, 4), (4, 6), (6, 8), (8, 10)]
+                logger.info("\n[bold cyan]Distribuição das notas:[/bold cyan]")
+                logger.info(f"Média: {media:.1f}")
+                logger.info(f"Maior nota: {maior_nota:.1f}")
+                logger.info(f"Menor nota: {menor_nota:.1f}")
+
+                for inicio, fim in ranges:
+                    count = sum(1 for nota in notas if inicio <= nota < fim)
+                    perc = count / len(notas) * 100
+                    logger.info(f"Entre {inicio} e {fim}: {count} alunos ({perc:.1f}%)")
+
+            logger.info(f"\nTaxa de erros: {(stats['erros'] / stats['total']):.1%}")
+
             logger.success("✨ Concluído!")
 
         except Exception as e:
             logger.error(f"Erro ao processar submissões: {str(e)}")
             raise
-
-
-def grade_submissions(
-    classroom_service: Any,
-    drive_service: Any,
-    course: Course,
-    coursework: CourseWork,
-    criteria_path: Path,
-    output_dir: Path,
-    send_email: bool = False,
-    return_grades: bool = False,
-) -> None:
-    """Função de conveniência para processar e avaliar submissões."""
-    grader = SubmissionsGrader(
-        classroom_service,
-        drive_service,
-        course,
-        coursework,
-        criteria_path,
-        output_dir,
-        send_email,
-        return_grades,
-    )
-    grader.grade()
