@@ -2,68 +2,206 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       body {
-        font-family: Arial, sans-serif;
+        font-family: 'Segoe UI', Roboto, Arial, sans-serif;
         max-width: 800px;
         margin: 0 auto;
         padding: 20px;
         line-height: 1.6;
-        color: #2c3e50;
+        color: #334155;
+        background-color: #f8fafc;
       }
       .header {
         text-align: center;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 15px;
-        margin-bottom: 25px;
+        border-bottom: 3px solid #3b82f6;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+        background: linear-gradient(to right, #dbeafe, #eff6ff);
+        border-radius: 12px 12px 0 0;
+        padding-top: 25px;
       }
       .logo {
-        max-width: 100px;
+        max-width: 80px;
         height: auto;
         margin-bottom: 15px;
         object-fit: contain;
-        border-radius: 5px;
+        border-radius: 10px;
         display: block;
         margin-left: auto;
         margin-right: auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
       .content {
-        background: #f9f9f9;
-        padding: 25px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       }
       .footer {
         margin-top: 35px;
-        padding-top: 20px;
-        border-top: 1px solid #bdc3c7;
-        color: #7f8c8d;
+        padding: 25px 15px;
+        border-top: 1px solid #cbd5e1;
+        color: #64748b;
         text-align: center;
+        background: linear-gradient(to right, #f1f5f9, #f8fafc);
+        border-radius: 0 0 12px 12px;
       }
       .contact-link {
-        color: #27ae60;
+        color: #2563eb;
         text-decoration: none;
         display: inline-flex;
         align-items: center;
         font-weight: bold;
+        padding: 8px 16px;
+        background-color: #dbeafe;
+        border-radius: 20px;
+        transition: all 0.2s ease;
       }
       .contact-link:hover {
-        text-decoration: underline;
+        background-color: #bfdbfe;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
       }
       .whatsapp-icon {
-        width: 20px;
-        height: 20px;
-        margin-right: 5px;
+        width: 22px;
+        height: 22px;
+        margin-right: 8px;
+      }
+      .points {
+        font-size: 1.2em;
+        color: #ea580c;
+        margin: 12px 0;
+        font-weight: bold;
+        display: inline-block;
+        padding: 6px 16px;
+        background-color: #fff7ed;
+        border-radius: 20px;
+      }
+      .assignment-info {
+        margin-bottom: 30px;
+        padding-bottom: 25px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .assignment-info h4 {
+        color: #1d4ed8;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px dotted #e2e8f0;
+      }
+      .feedback h4 {
+        color: #16a34a;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px dotted #e2e8f0;
+      }
+      h2,
+      h3 {
+        margin: 10px 0;
+        color: #1e3a8a;
+      }
+
+      .feedback-content {
+        line-height: 1.7;
+      }
+      .feedback-content h1,
+      .feedback-content h2,
+      .feedback-content h3,
+      .feedback-content h4 {
+        color: #1e40af;
+        margin-top: 1.5em;
+        margin-bottom: 0.8em;
+        font-weight: 600;
+      }
+      .feedback-content ul,
+      .feedback-content ol {
+        margin: 1em 0;
+        padding-left: 2em;
+      }
+      .feedback-content li {
+        margin: 0.5em 0;
+      }
+      .feedback-content code {
+        background-color: #f1f5f9;
+        padding: 0.2em 0.4em;
+        border-radius: 4px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.9em;
+      }
+      .feedback-content pre {
+        background-color: #f8fafc;
+        padding: 1em;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        overflow-x: auto;
+        margin: 1em 0;
+      }
+      .feedback-content pre code {
+        background-color: transparent;
+        padding: 0;
+      }
+      .feedback-content blockquote {
+        border-left: 4px solid #3b82f6;
+        margin: 1em 0;
+        padding: 0.5em 1em;
+        background-color: #f8fafc;
+        color: #475569;
+      }
+      .feedback-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1em 0;
+      }
+      .feedback-content th,
+      .feedback-content td {
+        border: 1px solid #e2e8f0;
+        padding: 0.5em;
+        text-align: left;
+      }
+      .feedback-content th {
+        background-color: #f8fafc;
+        font-weight: 600;
+      }
+      .feedback-content tr:nth-child(even) {
+        background-color: #f8fafc;
+      }
+      .feedback-content hr {
+        border: none;
+        border-top: 2px solid #e2e8f0;
+        margin: 2em 0;
       }
     </style>
   </head>
   <body>
     <div class="header">
-      <img src="https://i.postimg.cc/Qdk8WCHP/NES-C-rculo.png" alt="Novo Ensino Suplementar" class="logo" />
-      <h2>Feedback da Atividade</h2>
+      <img
+        src="https://i.postimg.cc/Qdk8WCHP/NES-C-rculo.png"
+        alt="Novo Ensino Suplementar"
+        class="logo"
+      />
+      <h2>{{ course_name }}</h2>
+      <h3>{{ assignment_title }}</h3>
+      {% if assignment_points %}
+      <p class="points">Nota: {{ student_points }} / {{ assignment_points }}</p>
+      {% endif %}
     </div>
 
-    <div class="content">{{ feedback_content }}</div>
+    <div class="content">
+      {% if assignment_description %}
+      <div class="assignment-info">
+        <h4>Descrição da Atividade:</h4>
+        <p>{{ assignment_description }}</p>
+      </div>
+      {% endif %}
+
+      <div class="feedback">
+        <h4>Feedback:</h4>
+        <div class="feedback-content">
+          {{ feedback_content | safe }}
+        </div>
+      </div>
+    </div>
 
     <div class="footer">
       <p>
@@ -72,7 +210,11 @@
       </p>
       <p>
         <a href="{{ whatsapp_link }}" class="contact-link">
-          <img src="https://cdn-icons-png.freepik.com/256/15707/15707917.png" alt="WhatsApp" class="whatsapp-icon" />
+          <img
+            src="https://cdn-icons-png.freepik.com/256/15707/15707917.png"
+            alt="WhatsApp"
+            class="whatsapp-icon"
+          />
           Enviar mensagem para {{ teacher_name }}
         </a>
       </p>
