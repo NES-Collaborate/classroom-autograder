@@ -9,24 +9,39 @@ from models import FeedbackResult, UserProfile
 
 
 @magentic.prompt(
-    """Você é um professor avaliando o trabalho submetido por um aluno.
-Seu trabalho é avaliar de forma imparcial e fornecer feedback construtivo.
-O feedback deve ser claro, direto e útil para o aluno.
+    """Você é um professor experiente avaliando o trabalho do aluno {student_name}.
+Seu objetivo é fornecer um feedback personalizado, construtivo e motivador.
 
-Você deve retornar um objeto estruturado com:
-1. feedback: O feedback completo em formato markdown que inclui:
-   - Pontos positivos: O que o aluno fez bem
-   - Pontos negativos: O que o aluno pode melhorar
-   - Sugestões: Como o aluno pode melhorar
-2. grade: A nota do aluno
+## Diretrizes para o feedback:
+- Mantenha um tom amigável mas profissional
+- Use emojis ocasionalmente para tornar o feedback mais engajador
+- Referencie partes específicas do trabalho do aluno
+- Forneça exemplos concretos de como melhorar, especialmente para código
+- Priorize comentários práticos e acionáveis
+- Evite repetir o título da atividade ou informações que já estarão no template HTML
+- Seja específico sobre o que está bom e o que precisa melhorar
 
-O feedback deve ser escrito em português e deve ser claro e direto.
+## Formato do feedback:
+### Pontos Positivos ✅
+- Liste aqui os aspectos bem executados, com exemplos específicos
+- Destaque as áreas onde o aluno demonstrou compreensão
 
-Considere o seguinte trabalho submetido pelo aluno {student_name}:
+### Oportunidades de Melhoria 🔍
+- Identifique áreas específicas para desenvolvimento
+- Explique claramente o que poderia ser melhorado e por quê
 
+### Sugestões Práticas 💡
+- Ofereça exemplos concretos de como melhorar
+- Para código, forneça snippets corrigidos
+- Sugira recursos ou técnicas específicas que possam ajudar
+
+## Atribuição de Nota:
+Avalie o trabalho de acordo com os critérios fornecidos, atribuindo uma nota justa que reflita tanto as conquistas quanto as áreas de melhoria.
+
+## Trabalho do aluno:
 {context}
 
-Critérios de avaliação:
+## Critérios de avaliação:
 {criteria}
 """,
     model=magentic.OpenaiChatModel("gpt-4o-mini"),
@@ -34,7 +49,7 @@ Critérios de avaliação:
 def evaluate_student_submissions(
     context: str, criteria: str, student_name: str
 ) -> FeedbackResult:
-    """Avalia células de um notebook usando LLM."""
+    """Avalia submissões de alunos usando LLM com feedback personalizado."""
     ...
 
 
@@ -47,8 +62,7 @@ def create_feedback(
     try:
         criteria = criteria_file.read_text(encoding="utf-8")
 
-        # TODO: use "with open" to use models.
-        with logger.status("Gerando feedback..."):
+        with logger.status("Gerando feedback personalizado..."):
             # Gera o feedback usando LLM
             result = evaluate_student_submissions(context, criteria, student.full_name)
 
@@ -63,16 +77,27 @@ def create_feedback(
 
 
 @magentic.prompt(
-    """Você é um professor avaliando o trabalho submetido por um aluno.
+    """Você é um professor especialista em design de avaliações educacionais.
 
-Seu trabalho é definir critérios de avaliação para uma determinada atividade / trabalho.
+Sua tarefa é criar critérios de avaliação detalhados, objetivos e justos para a atividade descrita abaixo.
 
-Considerando o enunciado da atividade a seguir, escreva critérios de avaliação precisos e claros a fim de delegar o trabalho de correção para outro professor.
+Os critérios devem:
+- Ser organizados em categorias claras (ex: funcionalidade, estrutura, estilo)
+- Incluir uma distribuição equilibrada de pontos
+- Fornecer métricas específicas para cada nível de desempenho
+- Ser facilmente aplicáveis por outros professores
+
+Para atividades de programação, inclua critérios sobre:
+- Funcionalidade do código
+- Estrutura e organização
+- Eficiência e otimização
+- Documentação e legibilidade
+- Tratamento de erros (quando aplicável)
 
 Enunciado da atividade:
 {context}""",
     model=magentic.OpenaiChatModel("gpt-4o-mini"),
 )
 def generate_criteria(context: str) -> str:
-    """Gera critérios de avaliação usando LLM."""
+    """Gera critérios de avaliação detalhados usando LLM."""
     ...
