@@ -1,10 +1,9 @@
 """Module for grading submissions."""
 
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
-from rich.console import Console
-
+from core import logger
 from core.classroom import grade_submission, return_submission
 from core.email import EmailSender
 from core.stringfy import AttachmentParser
@@ -12,8 +11,6 @@ from core.users import get_user_profile
 from models import Attachment, Submission, UserProfile
 
 from .llm import create_feedback
-
-console = Console()
 
 
 class SubmissionsGrader:
@@ -40,7 +37,7 @@ class SubmissionsGrader:
         self.send_email = send_email
         self.return_grades = return_grades
 
-    def _get_submissions(self) -> List[Submission]:
+    def _get_submissions(self) -> list[Submission]:
         """Busca submissões de uma atividade."""
         try:
             results = (
@@ -55,7 +52,7 @@ class SubmissionsGrader:
                 for submission in results.get("studentSubmissions", [])
             ]
         except Exception as e:
-            console.print(f"[red]Erro ao buscar submissões: {str(e)}[/red]")
+            logger.error(f"Erro ao buscar submissões: {str(e)}")
             return []
 
     def _save_feedback(self, student: UserProfile, feedback: str) -> None:
@@ -66,7 +63,7 @@ class SubmissionsGrader:
             )
             student_file.write_text(feedback, encoding="utf-8")
         except Exception as e:
-            console.print(f"[red]Erro ao salvar feedback: {str(e)}[/red]")
+            logger.error(f"Erro ao salvar feedback: {str(e)}")
 
     def _log_error(self, student_name: str, error: str) -> None:
         """Registra erro no arquivo de erros."""
@@ -82,7 +79,7 @@ class SubmissionsGrader:
                     f"# Log de Erros\n\n{error_content}", encoding="utf-8"
                 )
         except Exception as e:
-            console.print(f"[red]Erro ao registrar erro: {str(e)}[/red]")
+            logger.error(f"Erro ao registrar erro: {str(e)}")
 
     def _get_submitted_context(self, attachments: list[Attachment]) -> str:
         """Retorna em formato de string o contexto de tudo que foi submetido."""
@@ -95,14 +92,14 @@ class SubmissionsGrader:
         self,
         submission: Submission,
         student: UserProfile,
-        attachments: List[Attachment],
+        attachments: list[Attachment],
     ) -> None:
         """Processa uma submissão individual."""
 
         if not attachments:
             self._log_error(
                 student.full_name,
-                "### Erro: Submissão sem anexos\n- Nenhum arquivo encontrado",
+                "Nenhum arquivo encontrado",
             )
             return
 
@@ -111,17 +108,17 @@ class SubmissionsGrader:
         # TODO: adicionar informações adicionais sobre o enunciado da atividade, pontuação, etc.
         result = create_feedback(student, student_submitted_context, self.criteria_path)
 
-        # Se retornou string, é mensagem de erro
         if isinstance(result, str):
             self._log_error(student.full_name, result)
             return
 
-        # Salva o feedback e processa as notas
+        # Salva o feedback
         self._save_feedback(student, result.feedback)
 
+        # Processa notas
         if submission.associatedWithDeveloper:
-            # Grade the submission in Classroom
-            grade_submission(
+            logger.info(f"[bold green]Nota {result.grade}[/bold green]")
+            success = grade_submission(
                 self.classroom_service,
                 self.course_id,
                 self.assignment_id,
@@ -129,9 +126,10 @@ class SubmissionsGrader:
                 result.grade,
                 result.grade if self.return_grades else None,
             )
+            if not success:
+                logger.error("❌ Falha ao atribuir nota")
 
-            # Return the submission if requested
-            if self.return_grades:
+            if self.return_grades and success:
                 return_submission(
                     self.classroom_service,
                     self.course_id,
@@ -139,78 +137,62 @@ class SubmissionsGrader:
                     submission.id,
                 )
         else:
-            console.print(
-                "[yellow]Nota do aluno não definida no Google Classroom uma vez que a atividade não foi criada pela conta logada em questão.[/yellow]"
+            logger.warning(
+                "[yellow]Nota não definida (atividade de outra conta)[/yellow]"
             )
 
         # Send email if requested
         if self.send_email:
             email_sender = EmailSender.get_instance()
             email_sender.send_email(
-                student.email, "Feedback da Atividade", result.feedback
+                student.email,
+                f"[NES] Feedback da Atividade - ({self.assignment_id})",
+                result.feedback,
             )
 
-    def _process_submissions_batch(self, submissions: List[Submission]) -> None:
+    def _process_submissions_batch(self, submissions: list[Submission]) -> None:
         """Processa um lote de submissões."""
-        # TODO: ThreadPoolExecutor para processar submissões em paralelo.
         for submission in submissions:
             student_id = submission.userId
             student = get_user_profile(self.classroom_service, student_id)
             if student is None:
-                # TODO: mudar isso de erro pra warning e prosseguir com a execução utilizando student placeholder.
-                self._log_error(
-                    student_id,
-                    "### Erro: Usuário inválido\n- Não foi possível encontrar o usuário",
-                )
+                self._log_error(student_id, "Usuário não encontrado")
                 continue
 
-            console.print(
-                f"[blue]Processando submissão de[/blue] [cyan]{student.full_name}[/cyan] ([yellow]{student.email}[/yellow])..."
+            # Nome do aluno em destaque
+            print()
+            logger.info(
+                f"[bold cyan]➤ {student.full_name}[/bold cyan] ({student.email})"
             )
+
             try:
-                if submission.assignmentSubmission is None:
-                    self._log_error(
-                        student_id,
-                        "### Erro: Submissão inválida\n- Nenhum arquivo encontrado",
-                    )
+                if (
+                    not submission.assignmentSubmission
+                    or not submission.assignmentSubmission.attachments
+                ):
+                    self._log_error(student_id, "Nenhum arquivo encontrado")
                     continue
 
-                attachments = submission.assignmentSubmission.attachments
-                if attachments is None:
-                    self._log_error(
-                        student_id,
-                        "### Erro: Submissão inválida\n- Nenhum arquivo encontrado",
-                    )
-                    continue
-
-                self._process_submission(submission, student, attachments)
-                console.print(
-                    f"[green]✓[/green] Feedback criado para [cyan]{student.full_name}[/cyan]"
+                self._process_submission(
+                    submission, student, submission.assignmentSubmission.attachments
                 )
 
             except Exception as e:
-                student_name = student.full_name
-                self._log_error(
-                    student_name,
-                    f"### Erro: Exceção não tratada\n- {str(e)}",
-                )
+                self._log_error(student.full_name, f"Erro: {str(e)}")
 
     def grade(self) -> None:
         """Processa e avalia as submissões de uma atividade."""
         try:
-            # 1. Buscar submissões
             submissions = self._get_submissions()
             if not submissions:
-                console.print("[yellow]Nenhuma submissão encontrada.[/yellow]")
+                logger.warning("Nenhuma submissão encontrada")
                 return
 
-            # 2. Processar submissões
             self._process_submissions_batch(submissions)
-
-            console.print("[green]✨ Processamento concluído![/green]")
+            logger.success("✨ Concluído!")
 
         except Exception as e:
-            console.print(f"[red]Erro ao processar submissões: {str(e)}[/red]")
+            logger.error(f"Erro ao processar submissões: {str(e)}")
             raise
 
 

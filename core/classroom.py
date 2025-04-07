@@ -2,11 +2,8 @@
 
 from typing import Any
 
-from rich.console import Console
-
+from core import logger
 from models import CourseWork
-
-console = Console()
 
 
 def get_courses(service) -> list[dict[str, Any]]:
@@ -18,7 +15,7 @@ def get_courses(service) -> list[dict[str, Any]]:
         courses = results.get("courses", [])
         return courses
     except Exception as e:
-        console.print(f"[red]Erro ao buscar cursos: {str(e)}[/red]")
+        logger.error(f"Erro ao buscar cursos: {str(e)}")
         return []
 
 
@@ -34,21 +31,25 @@ def get_assignments(service, course_id: str) -> list[dict[str, Any]]:
         assignments = results.get("courseWork", [])
         return assignments
     except Exception as e:
-        console.print(f"[red]Erro ao buscar atividades: {str(e)}[/red]")
+        logger.error(f"Erro ao buscar atividades: {str(e)}")
         return []
 
 
 def get_course_work(service, course_id: str, assignment_id: str) -> CourseWork | None:
     """Recupera o contexto de uma atividade."""
     try:
-        return CourseWork.model_validate(
+        logger.info(f"Buscando detalhes da atividade {assignment_id}...")
+        result = (
             service.courses()
             .courseWork()
             .get(courseId=course_id, id=assignment_id)
             .execute()
         )
+        course_work = CourseWork.model_validate(result)
+        logger.success(f"Atividade encontrada: {course_work.title}")
+        return course_work
     except Exception as e:
-        console.print(f"[red]Erro ao buscar contexto: {str(e)}[/red]")
+        logger.error(f"Erro ao buscar contexto: {str(e)}")
         return None
 
 
@@ -83,6 +84,9 @@ def grade_submission(
         if assigned_grade is not None:
             grade_data["assignedGrade"] = assigned_grade
             update_mask += ",assignedGrade"
+            logger.info(f"Definindo nota final como {assigned_grade}...")
+        else:
+            logger.info(f"Definindo rascunho da nota como {draft_grade}...")
 
         # Update the student submission with the grade
         service.courses().courseWork().studentSubmissions().patch(
@@ -95,7 +99,7 @@ def grade_submission(
 
         return True
     except Exception as e:
-        console.print(f"[red]Erro ao atribuir nota: {str(e)}[/red]")
+        logger.error(f"Erro ao atribuir nota: {str(e)}")
         return False
 
 
@@ -118,11 +122,13 @@ def return_submission(
         True if returning was successful, False otherwise
     """
     try:
+        logger.info("Retornando submissão para o aluno...")
         service.courses().courseWork().studentSubmissions().return_(
             courseId=course_id, courseWorkId=course_work_id, id=submission_id, body={}
         ).execute()
+        logger.success("Submissão retornada com sucesso")
 
         return True
     except Exception as e:
-        console.print(f"[red]Erro ao retornar submissão: {str(e)}[/red]")
+        logger.error(f"Erro ao retornar submissão: {str(e)}")
         return False

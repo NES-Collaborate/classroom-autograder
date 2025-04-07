@@ -3,11 +3,9 @@
 from pathlib import Path
 
 import magentic
-from rich.console import Console
 
+from core import logger
 from models import FeedbackResult, UserProfile
-
-console = Console()
 
 
 @magentic.prompt(
@@ -50,10 +48,17 @@ def create_feedback(
         criteria = criteria_file.read_text(encoding="utf-8")
 
         # TODO: use "with open" to use models.
-        return evaluate_student_submissions(context, criteria, student.full_name)
+        with logger.status("Gerando feedback..."):
+            # Gera o feedback usando LLM
+            result = evaluate_student_submissions(context, criteria, student.full_name)
+
+        logger.info(
+            f"[dim]Feedback gerado para {student.full_name}, Nota: {result.grade}[/dim]"
+        )
+        return result
 
     except Exception as e:
-        console.print(f"[red]Erro ao gerar feedback: {str(e)}[/red]")
+        logger.error(f"Erro ao gerar feedback: {str(e)}")
         return f"# Erro na Avaliação\n\nNão foi possível gerar o feedback automaticamente.\nErro: {str(e)}"
 
 

@@ -2,11 +2,8 @@
 
 from typing import Any, Optional
 
-from rich.console import Console
-
+from core import logger
 from models import UserProfile
-
-console = Console()
 
 
 def get_user_profile(classroom_service: Any, user_id: str) -> Optional[UserProfile]:
@@ -28,7 +25,7 @@ def get_user_profile(classroom_service: Any, user_id: str) -> Optional[UserProfi
             email=profile.get("emailAddress", ""),
         )
     except Exception as e:
-        console.print(
-            f"[yellow]Aviso: Não foi possível carregar perfil do usuário {user_id}: {str(e)}[/yellow]"
+        logger.warning(
+            f"Não foi possível carregar perfil do usuário {user_id}: {str(e)}"
         )
         return None

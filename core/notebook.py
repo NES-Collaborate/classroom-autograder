@@ -3,9 +3,8 @@
 from typing import Any
 
 import nbformat
-from rich.console import Console
 
-console = Console()
+from core import logger
 
 
 def extract_cells(notebook: dict[str, Any]) -> list[dict[str, Any]]:
@@ -29,8 +28,7 @@ def process_notebook(notebook_stream: bytes) -> list[dict[str, Any]] | None:
     """Processa um notebook Jupyter e retorna suas células."""
     try:
         notebook = nbformat.reads(notebook_stream.decode("utf-8"), as_version=4)
+        return extract_cells(notebook)
     except Exception as e:
-        console.print(f"[red]Erro ao ler notebook: {str(e)}[/red]")
+        logger.error(f"❌ Erro no notebook: {str(e)}")
         return None
-
-    return extract_cells(notebook)

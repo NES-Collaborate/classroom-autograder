@@ -5,9 +5,8 @@ from typing import Optional
 
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
-from rich.console import Console
 
-console = Console()
+from core import logger
 
 
 def download_file(
@@ -25,6 +24,9 @@ def download_file(
         Bytes do arquivo ou None se houver erro
     """
     try:
+        if not silent:
+            logger.info(f"Iniciando download do arquivo {file_id}...")
+
         request = drive_service.files().get_media(fileId=file_id)
         file = io.BytesIO()
         downloader = MediaIoBaseDownload(file, request)
@@ -33,20 +35,18 @@ def download_file(
         while not done:
             status, done = downloader.next_chunk()
             if not silent:
-                console.print(
-                    f"Download: [blue]{int(status.progress() * 100)}%[/blue]",
-                    end="\r",
+                logger.info(
+                    f"Download em progresso: {int(status.progress() * 100)}%",
                 )
 
         if not silent:
-            console.print()
-
+            logger.success("Download concluído com sucesso")
         return file.getvalue()
 
     except HttpError as error:
-        console.print(f"[red]Erro ao baixar arquivo: {str(error)}[/red]")
+        logger.error(f"Erro ao baixar arquivo: {str(error)}")
         return None
 
     except Exception as e:
-        console.print(f"[red]Erro inesperado: {str(e)}[/red]")
+        logger.error(f"Erro inesperado: {str(e)}")
         return None

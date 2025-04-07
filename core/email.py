@@ -5,6 +5,7 @@ from smtplib import SMTP_SSL
 
 from jinja2 import Environment, FileSystemLoader
 
+from core import logger
 from models import TeacherProfile
 
 
@@ -63,5 +64,7 @@ class EmailSender:
 
     def send_email(self, to_address: str, subject: str, body: str) -> None:
         """Envia um email com o feedback formatado em HTML."""
-        msg = self._create_html_message(to_address, subject, body)
-        self.smtp.send_message(msg)
+        with logger.status(f"Enviando email para [blue]{to_address}[/blue]..."):
+            msg = self._create_html_message(to_address, subject, body)
+            self.smtp.send_message(msg)
+        logger.info(f"[dim]✉️ Email enviado para {to_address}[/dim]")

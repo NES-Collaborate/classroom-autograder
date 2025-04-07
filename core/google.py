@@ -7,6 +7,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+from core import logger
+
 
 def get_service(
     api_name: str,
@@ -37,6 +39,7 @@ def get_service(
 
     scopes = SCOPES_MAP.get(api_name)
     if not scopes:
+        logger.error(f"Escopos não definidos para API: {api_name}")
         raise ValueError(f"Escopos não definidos para API: {api_name}")
 
     creds = None
@@ -55,7 +58,6 @@ def get_service(
         else:
             flow = InstalledAppFlow.from_client_secrets_file(credentials_path, scopes)
             creds = flow.run_local_server(port=0)
-        with open(token_path, "w") as token:
-            token.write(creds.to_json())
-
+            with open(token_path, "w") as token:
+                token.write(creds.to_json())
     return build(api_name, api_version, credentials=creds)
