@@ -1,12 +1,27 @@
 from pathlib import Path
 from typing import Callable, Optional
 
+import pymupdf
+
 from core import logger
 from core.drive import download_file
 from models import Attachment, DriveFile, Form, Link, SharedDriveFile, YouTubeVideo
 from utils import sanitize_string
 
 from .notebook import process_notebook
+
+
+def _parse_pdf(bytes: bytes) -> str:
+    """Extrai texto de um arquivo PDF usando pymupdf."""
+    try:
+        doc = pymupdf.Document(stream=bytes, filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text()  # type: ignore [hope]
+        doc.close()
+        return text
+    except Exception as e:
+        raise ValueError(f"Erro ao processar PDF: {str(e)}")
 
 
 class AttachmentParser:
@@ -58,6 +73,7 @@ class AttachmentParser:
         file_extension = Path(filename).suffix.lstrip(".")
         file_parsers = {
             "ipynb": process_notebook,
+            "pdf": _parse_pdf,
         }
 
         parsed_file = file_parsers.get(file_extension, self.__parse_bare_text)(

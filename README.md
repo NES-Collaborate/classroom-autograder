@@ -16,9 +16,9 @@ Uma ferramenta CLI para correção automática de submissões do Google Classroo
 - 🐍 Arquivos Python (.py)
 - 📓 Jupyter Notebooks (.ipynb)
 - 📝 Arquivos de texto (.txt)
+- 📑 Documentos PDF (.pdf)
 - ~~📄 Documentos do Word (.docx)~~
 - ~~📊 Planilhas do Excel (.xlsx)~~
-- ~~📑 Documentos PDF (.pdf)~~
 
 ## 🚀 Requisitos
 

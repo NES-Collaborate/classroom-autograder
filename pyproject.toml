@@ -12,6 +12,7 @@ dependencies = [
     "markdown2>=2.5.3",
     "nbformat>=5.10.4",
     "pydantic[email]>=2.11.2",
+    "pymupdf>=1.25.5",
     "questionary>=2.1.0",
     "rich>=14.0.0",
 ]
