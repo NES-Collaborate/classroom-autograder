@@ -172,7 +172,7 @@ class SubmissionsGrader:
                     not submission.assignmentSubmission
                     or not submission.assignmentSubmission.attachments
                 ):
-                    self._log_error(student_id, "Nenhum arquivo encontrado")
+                    self._log_error(student.full_name, "Nenhum arquivo encontrado")
                     continue
 
                 self._process_submission(
